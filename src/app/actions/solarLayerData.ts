@@ -17,7 +17,7 @@ export async function getSolarLayerData(
         params: {
           "location.latitude": latitude.toFixed(5),
           "location.longitude": longitude.toFixed(5),
-          radius_meters: "30",
+          radius_meters: "100",
           // required_quality: "HIGH",
           pixelSizeMeters : "0.1",
           required_quality: "LOW",

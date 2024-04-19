@@ -59,7 +59,7 @@ export default function AddressForm() {
   const [inputValue, setInputValue] = React.useState("");
   const [options, setOptions] = React.useState<readonly PlaceType[]>([]);
   const loaded = React.useRef(false);
-  const [serverResponse, setServerResponse] = React.useState("");
+  const [serverResponse, setServerResponse] = React.useState<Buffer | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   if (typeof window !== "undefined" && !loaded.current) {
@@ -135,21 +135,30 @@ export default function AddressForm() {
       const formData = new FormData();
       formData.append("address", data.address);
       const response = await getGeoCode(formData);
-      const solarResponse = await getSolarLayerData(
-        response.results[0].geometry.location.lat,
-        response.results[0].geometry.location.lng
-      );
-      const geotiff = await getGeoTiff(
-        solarResponse,
-        process.env.GOOGLE_MAPS_API_KEY
-      );
-      setServerResponse(geotiff);
+      const latitude = response?.results[0]?.geometry?.location.lat;
+      const longitude = response?.results[0]?.geometry.location.lng;
+  
+      if (latitude !== undefined && longitude !== undefined) {
+        const solarResponse = await getSolarLayerData(latitude, longitude);
+  
+        if (typeof solarResponse === "string") {
+          const geotiff = await getGeoTiff(solarResponse, process.env.GOOGLE_MAPS_API_KEY || "");
+          setServerResponse(geotiff);
+        } else {
+          // Handle the case where solarResponse is not a string (e.g., undefined)
+          console.error("Solar response is not a string:", solarResponse);
+        }
+      } else {
+        // Handle the case where latitude or longitude is undefined
+        console.error("Latitude or longitude is undefined");
+      }
     } catch (error) {
-      console.log("error", error);
+      console.error("Error:", error);
     } finally {
       setIsSubmitting(false);
     }
   };
+  
   return (
     <>
       <form

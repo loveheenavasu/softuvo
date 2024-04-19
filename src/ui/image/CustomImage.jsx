@@ -15,6 +15,7 @@ const CustomImage = ({ serverResponse, loader }) => {
   const [rotationAngles, setRotationAngles] = useState([]);
   const [history, setHistory] = useState([]);
   const [historyStep, setHistoryStep] = useState(-1);
+  const [stageDimensions, setStageDimensions] = useState({ width: 0, height: 0 });
   const stageRef = useRef(null);
   const polygonLayerRef = useRef(null);
   const panelLayerRef = useRef(null);
@@ -258,32 +259,23 @@ const CustomImage = ({ serverResponse, loader }) => {
     }
   };
 
-  const handleSaveImage = async () => {
-    if (!stageRef.current) {
-      console.error("Stage not found");
-      return;
-    }
-
-    const dataURL = stageRef.current.toDataURL(); // Get the data URL of the stage
-console.log('dataURL',dataURL)
-    try {
-      const response = await fetch("/api/saveimage", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ imageData: dataURL }),
+  useEffect(() => {
+    const handleResize = () => {
+      setStageDimensions({
+        width: window.innerWidth,
+        height: window.innerHeight
       });
+    };
 
-      if (response.ok) {
-        console.log("Image saved successfully");
-      } else {
-        console.error("Failed to save image:", response.statusText);
-      }
-    } catch (error) {
-      console.error("Error saving image:", error);
-    }
-  };
+    handleResize();
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
 
   return (
     <>
@@ -294,13 +286,13 @@ console.log('dataURL',dataURL)
       )}
       <Stage
         className="flex items-center justify-center"
-        width={window.innerWidth}
-        height={window.innerHeight}
+        width={stageDimensions.width}
+        height={stageDimensions.height}
         onClick={handleStageClick}
         ref={stageRef}
       >
         <Layer ref={panelLayerRef}>
-          {image && <Image image={image} />}
+          {image && <Image image={image} alt = "image" />}
           {rectangles.map((rect, index) => (
             <Rect
               key={index}
@@ -337,15 +329,11 @@ console.log('dataURL',dataURL)
         </Layer>
       </Stage>
       <div className="flex items-center justify-center">
-        <Button onClick={handleUndo} disabled={points.length === 0}>
-          <NextImage
-            style={{ marginRight: "0.4rem" }}
-            src="/undo-arrow.svg"
-            alt="undo"
-            width={20}
-            height={20}
-          />
+        <Button onClick={handleUndo}>
           <span>Undo</span>
+        </Button>
+        <Button onClick={handleRedo}>
+          <span>Redo</span>
         </Button>
         <Button
           onClick={addPanelAndFinishPolygon}
@@ -353,11 +341,9 @@ console.log('dataURL',dataURL)
         >
           <span>Add Panel</span>
         </Button>
-        <Button onClick={handleUndoRectangle}>Undo Rect</Button>
-        <Button onClick={handleRedo}>Redo Rect</Button>
         <Button onClick={handleAddRectangle}>Add Rectangle</Button>
         <Button onClick={handleRemoveRectangle}>Remove Rectangle</Button>
-        <Button onClick={handleSaveImage}>Save Image</Button>
+
       </div>
 
       {sideLengths.map((sideLength, index) => (
