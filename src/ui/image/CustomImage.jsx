@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Stage, Layer, Image, Rect, Transformer, Line } from "react-konva";
+import { Stage, Layer, Image, Rect, Transformer, Line, Group } from "react-konva";
 import { Button, CircularProgress } from "@mui/material";
-import NextImage from "next/image";
-import { exportImage } from "@/app/actions/exportImage";
 
 const CustomImage = ({ serverResponse, loader }) => {
   const [imageElement, setImageElement] = useState(null);
@@ -15,7 +13,11 @@ const CustomImage = ({ serverResponse, loader }) => {
   const [rotationAngles, setRotationAngles] = useState([]);
   const [history, setHistory] = useState([]);
   const [historyStep, setHistoryStep] = useState(-1);
-  const [stageDimensions, setStageDimensions] = useState({ width: 0, height: 0 });
+  const [stageDimensions, setStageDimensions] = useState({
+    width: 0,
+    height: 0,
+  });
+  const [imageShown, setImageShown] = useState(false); // Flag to track if image is shown
   const stageRef = useRef(null);
   const polygonLayerRef = useRef(null);
   const panelLayerRef = useRef(null);
@@ -31,6 +33,7 @@ const CustomImage = ({ serverResponse, loader }) => {
     const img = new window.Image();
     img.onload = () => {
       setImageElement(img);
+      setImageShown(true); // Set imageShown to true once image is loaded
     };
     img.src = url;
 
@@ -46,24 +49,35 @@ const CustomImage = ({ serverResponse, loader }) => {
   }, [imageElement]);
 
   const handleStageClick = (e) => {
+    if (!imageShown) return;
+
     const stage = stageRef.current;
     const pointerPosition = stage.getPointerPosition();
-    const clickedPoint = { x: pointerPosition.x, y: pointerPosition.y };
 
-    // Check if the clicked point lies inside any existing polygons or rectangles
-    const insidePolygonOrRectangle =
-      polygons.some((polygon) => isPointInsidePolygon(clickedPoint, polygon)) ||
-      rectangles.some((rect) => isPointInsideRectangle(clickedPoint, rect));
+    const imageBoundingBox = stageRef.current.findOne("Image").getClientRect();
 
-    // If the clicked point is not inside any existing polygon or rectangle, add it to the points array
-    if (!insidePolygonOrRectangle) {
-      const newPoints = points.concat([pointerPosition.x, pointerPosition.y]);
-      setPoints(newPoints);
+    if (
+      pointerPosition.x >= imageBoundingBox.x &&
+      pointerPosition.x <= imageBoundingBox.x + imageBoundingBox.width &&
+      pointerPosition.y >= imageBoundingBox.y &&
+      pointerPosition.y <= imageBoundingBox.y + imageBoundingBox.height
+    ) {
+      const clickedPoint = { x: pointerPosition.x, y: pointerPosition.y };
+      const insidePolygonOrRectangle =
+        polygons.some((polygon) =>
+          isPointInsidePolygon(clickedPoint, polygon)
+        ) ||
+        rectangles.some((rect) => isPointInsideRectangle(clickedPoint, rect));
+
+      if (!insidePolygonOrRectangle) {
+        const newPoints = points.concat([pointerPosition.x, pointerPosition.y]);
+        setPoints(newPoints);
+      }
     }
   };
 
   const handleUndo = () => {
-    setPoints(points.slice(0, -2)); // Remove the last added point
+    setPoints(points.slice(0, -2));
   };
 
   const addPanelAndFinishPolygon = () => {
@@ -72,7 +86,7 @@ const CustomImage = ({ serverResponse, loader }) => {
       const newSideLengths = getSideLengths(points);
       setSideLengths([...sideLengths, newSideLengths]);
       const newRectangles = rectangles.slice();
-      const polygonPoints = points; // Use the current points to create rectangles
+      const polygonPoints = points;
       const polygonArea = shoelaceFormula(polygonPoints);
       const numRectangles = Math.ceil(polygonArea / (panelLength * panelWidth));
       const boundingRect = getBoundingRect(polygonPoints);
@@ -218,14 +232,6 @@ const CustomImage = ({ serverResponse, loader }) => {
     setSelectedRectIndex(index);
   };
 
-  const handleUndoRectangle = () => {
-    if (historyStep > 0) {
-      setHistoryStep((prevStep) => prevStep - 1);
-      const prevState = history[historyStep - 1];
-      setRectangles(prevState);
-    }
-  };
-
   const handleRedo = () => {
     if (historyStep < history.length - 1) {
       setHistoryStep((prevStep) => prevStep + 1);
@@ -235,15 +241,20 @@ const CustomImage = ({ serverResponse, loader }) => {
   };
 
   const handleAddRectangle = () => {
+    if (!image) return; 
+  
+    const imageBoundingBox = stageRef.current.findOne('Image').getClientRect();
+  
     const newRect = {
-      x: 50, // Initial x position
-      y: 50, // Initial y position
+      x: imageBoundingBox.x + imageBoundingBox.width / 2 - panelLength / 2, 
+      y: imageBoundingBox.y + imageBoundingBox.height / 2 - panelWidth / 2, 
       width: panelLength,
       height: panelWidth,
     };
     setRectangles([...rectangles, newRect]);
     setRotationAngles([...rotationAngles, 0]); // Initialize rotation angle
   };
+  
 
   const handleRemoveRectangle = () => {
     if (selectedRectIndex !== null) {
@@ -263,7 +274,7 @@ const CustomImage = ({ serverResponse, loader }) => {
     const handleResize = () => {
       setStageDimensions({
         width: window.innerWidth,
-        height: window.innerHeight
+        height: window.innerHeight,
       });
     };
 
@@ -275,7 +286,6 @@ const CustomImage = ({ serverResponse, loader }) => {
       window.removeEventListener("resize", handleResize);
     };
   }, []);
-
 
   return (
     <>
@@ -292,7 +302,14 @@ const CustomImage = ({ serverResponse, loader }) => {
         ref={stageRef}
       >
         <Layer ref={panelLayerRef}>
-          {image && <Image image={image} alt = "image" />}
+          {image && (
+            <Group
+              x={(stageDimensions.width - image.width) / 2}
+              y={(stageDimensions.height - image.height) / 2}
+            >
+              <Image image={image} alt="image" />
+            </Group>
+          )}
           {rectangles.map((rect, index) => (
             <Rect
               key={index}
@@ -321,33 +338,35 @@ const CustomImage = ({ serverResponse, loader }) => {
             />
           )}
         </Layer>
-        <Layer ref={polygonLayerRef}>
-          <Line points={points} stroke="red" />
-          {polygons.map((polygonPoints, index) => (
-            <Line key={index} points={polygonPoints} stroke="red" />
-          ))}
-        </Layer>
+        {imageShown && ( // Conditionally render the polygon layer after image is shown
+          <Layer ref={polygonLayerRef}>
+            <Line points={points} stroke="red" />
+            {polygons.map((polygonPoints, index) => (
+              <Line key={index} points={polygonPoints} stroke="red" />
+            ))}
+          </Layer>
+        )}
       </Stage>
-      <div className="flex items-center justify-center">
-        <Button onClick={handleUndo}>
-          <span>Undo</span>
-        </Button>
-        <Button onClick={handleRedo}>
-          <span>Redo</span>
-        </Button>
-        <Button
-          onClick={addPanelAndFinishPolygon}
-          disabled={points.length === 0}
-        >
-          <span>Add Panel</span>
-        </Button>
-        <Button onClick={handleAddRectangle}>Add Rectangle</Button>
-        <Button onClick={handleRemoveRectangle}>Remove Rectangle</Button>
-
-      </div>
-
+      {imageShown && ( // Conditionally render the buttons after image is shown
+        <div className="flex items-center justify-center">
+          <Button onClick={handleUndo}>
+            <span>Undo</span>
+          </Button>
+          <Button onClick={handleRedo}>
+            <span>Redo</span>
+          </Button>
+          <Button
+            onClick={addPanelAndFinishPolygon}
+            disabled={points.length === 0}
+          >
+            <span>Add Panel</span>
+          </Button>
+          <Button onClick={handleAddRectangle}>Add Rectangle</Button>
+          <Button onClick={handleRemoveRectangle}>Remove Rectangle</Button>
+        </div>
+      )}
       {sideLengths.map((sideLength, index) => (
-        <div key={index}>
+        <div key={index} className="text-center">
           Side Lengths of Polygon {index + 1}: {sideLength.join(", ")}
         </div>
       ))}
