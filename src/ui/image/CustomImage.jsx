@@ -18,6 +18,8 @@ const CustomImage = ({ serverResponse, loader }) => {
     height: 0,
   });
   const [imageShown, setImageShown] = useState(false); // Flag to track if image is shown
+  const [rectanglePlacementMode, setRectanglePlacementMode] = useState(false); // Flag to track rectangle placement mode
+  const [newRectanglePosition, setNewRectanglePosition] = useState(null); // Track position for new rectangle
   const stageRef = useRef(null);
   const polygonLayerRef = useRef(null);
   const panelLayerRef = useRef(null);
@@ -62,16 +64,21 @@ const CustomImage = ({ serverResponse, loader }) => {
       pointerPosition.y >= imageBoundingBox.y &&
       pointerPosition.y <= imageBoundingBox.y + imageBoundingBox.height
     ) {
-      const clickedPoint = { x: pointerPosition.x, y: pointerPosition.y };
-      const insidePolygonOrRectangle =
-        polygons.some((polygon) =>
-          isPointInsidePolygon(clickedPoint, polygon)
-        ) ||
-        rectangles.some((rect) => isPointInsideRectangle(clickedPoint, rect));
+      if (rectanglePlacementMode) {
+        // If in rectangle placement mode, set the position for the new rectangle
+        setNewRectanglePosition({ x: pointerPosition.x, y: pointerPosition.y });
+      } else {
+        const clickedPoint = { x: pointerPosition.x, y: pointerPosition.y };
+        const insidePolygonOrRectangle =
+          polygons.some((polygon) =>
+            isPointInsidePolygon(clickedPoint, polygon)
+          ) ||
+          rectangles.some((rect) => isPointInsideRectangle(clickedPoint, rect));
 
-      if (!insidePolygonOrRectangle) {
-        const newPoints = points.concat([pointerPosition.x, pointerPosition.y]);
-        setPoints(newPoints);
+        if (!insidePolygonOrRectangle) {
+          const newPoints = points.concat([pointerPosition.x, pointerPosition.y]);
+          setPoints(newPoints);
+        }
       }
     }
   };
@@ -242,19 +249,27 @@ const CustomImage = ({ serverResponse, loader }) => {
 
   const handleAddRectangle = () => {
     if (!image) return; 
-  
-    const imageBoundingBox = stageRef.current.findOne('Image').getClientRect();
-  
-    const newRect = {
-      x: imageBoundingBox.x + imageBoundingBox.width / 2 - panelLength / 2, 
-      y: imageBoundingBox.y + imageBoundingBox.height / 2 - panelWidth / 2, 
-      width: panelLength,
-      height: panelWidth,
-    };
-    setRectangles([...rectangles, newRect]);
-    setRotationAngles([...rotationAngles, 0]); // Initialize rotation angle
+
+    // Set rectangle placement mode when clicking "Add Rectangle" button
+    setRectanglePlacementMode(true);
   };
-  
+
+  const handleConfirmRectanglePlacement = () => {
+    if (newRectanglePosition) {
+      const newRect = {
+        x: newRectanglePosition.x - panelLength / 2,
+        y: newRectanglePosition.y - panelWidth / 2,
+        width: panelLength,
+        height: panelWidth,
+      };
+      setRectangles([...rectangles, newRect]);
+      setRotationAngles([...rotationAngles, 0]); // Initialize rotation angle
+
+      // Reset rectangle placement mode and position
+      setRectanglePlacementMode(false);
+      setNewRectanglePosition(null);
+    }
+  };
 
   const handleRemoveRectangle = () => {
     if (selectedRectIndex !== null) {
@@ -337,12 +352,29 @@ const CustomImage = ({ serverResponse, loader }) => {
               }}
             />
           )}
+          {rectanglePlacementMode && (
+            // Render a temporary rectangle at the cursor position in rectangle placement mode
+            newRectanglePosition && (
+              <Rect
+                x={newRectanglePosition.x - panelLength / 2}
+                y={newRectanglePosition.y - panelWidth / 2}
+                width={panelLength}
+                height={panelWidth}
+                fill="blue"
+                opacity={0.5}
+              />
+            )
+          )}
         </Layer>
         {imageShown && ( // Conditionally render the polygon layer after image is shown
           <Layer ref={polygonLayerRef}>
             <Line points={points} stroke="red" />
             {polygons.map((polygonPoints, index) => (
-              <Line key={index} points={polygonPoints} stroke="red" />
+              <Line
+                key={index}
+                points={polygonPoints}
+                stroke="red"
+              />
             ))}
           </Layer>
         )}
@@ -361,7 +393,13 @@ const CustomImage = ({ serverResponse, loader }) => {
           >
             <span>Add Panel</span>
           </Button>
-          <Button onClick={handleAddRectangle}>Add Rectangle</Button>
+          {rectanglePlacementMode ? (
+            <Button onClick={handleConfirmRectanglePlacement}>
+              <span>Confirm Position</span>
+            </Button>
+          ) : (
+            <Button onClick={handleAddRectangle}>Add Rectangle</Button>
+          )}
           <Button onClick={handleRemoveRectangle}>Remove Rectangle</Button>
         </div>
       )}
