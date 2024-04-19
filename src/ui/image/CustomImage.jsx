@@ -1,5 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Stage, Layer, Image, Rect, Transformer, Line, Group } from "react-konva";
+import {
+  Stage,
+  Layer,
+  Image,
+  Rect,
+  Transformer,
+  Line,
+  Group,
+} from "react-konva";
 import { Button, CircularProgress } from "@mui/material";
 
 const CustomImage = ({ serverResponse, loader }) => {
@@ -11,8 +19,6 @@ const CustomImage = ({ serverResponse, loader }) => {
   const [rectangles, setRectangles] = useState([]);
   const [selectedRectIndex, setSelectedRectIndex] = useState(null);
   const [rotationAngles, setRotationAngles] = useState([]);
-  const [history, setHistory] = useState([]);
-  const [historyStep, setHistoryStep] = useState(-1);
   const [stageDimensions, setStageDimensions] = useState({
     width: 0,
     height: 0,
@@ -23,10 +29,14 @@ const CustomImage = ({ serverResponse, loader }) => {
   const stageRef = useRef(null);
   const polygonLayerRef = useRef(null);
   const panelLayerRef = useRef(null);
+  const shapeRef = React.useRef(null);
+
   const panelLength = 10;
   const panelWidth = 10;
   const transformerRef = useRef(null);
-
+  const [history, setHistory] = useState([]); // New history state to track all actions
+  const [historyIndex, setHistoryIndex] = useState(-1); // Index to track current state in history
+  console.log("selectedRectIndex");
   useEffect(() => {
     const uint8Array = new Uint8Array(serverResponse);
     const blob = new Blob([uint8Array], { type: "image/jpeg" });
@@ -49,6 +59,23 @@ const CustomImage = ({ serverResponse, loader }) => {
       setImage(imageElement);
     }
   }, [imageElement]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setStageDimensions({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    };
+
+    handleResize();
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
 
   const handleStageClick = (e) => {
     if (!imageShown) return;
@@ -76,7 +103,10 @@ const CustomImage = ({ serverResponse, loader }) => {
           rectangles.some((rect) => isPointInsideRectangle(clickedPoint, rect));
 
         if (!insidePolygonOrRectangle) {
-          const newPoints = points.concat([pointerPosition.x, pointerPosition.y]);
+          const newPoints = points.concat([
+            pointerPosition.x,
+            pointerPosition.y,
+          ]);
           setPoints(newPoints);
         }
       }
@@ -84,12 +114,33 @@ const CustomImage = ({ serverResponse, loader }) => {
   };
 
   const handleUndo = () => {
-    setPoints(points.slice(0, -2));
+    if (historyIndex > 0) {
+      setHistoryIndex(historyIndex - 1);
+      const previousState = history[historyIndex - 1];
+      setPolygons(previousState.polygons);
+      setRectangles(previousState.rectangles);
+      setPoints(previousState.points);
+      setSideLengths(previousState.sideLengths);
+      setRotationAngles(previousState.rotationAngles);
+    }
+  };
+
+  const handleRedo = () => {
+    if (historyIndex < history.length - 1) {
+      setHistoryIndex(historyIndex + 1);
+      const nextState = history[historyIndex + 1];
+      setPolygons(nextState.polygons);
+      setRectangles(nextState.rectangles);
+      setPoints(nextState.points);
+      setSideLengths(nextState.sideLengths);
+      setRotationAngles(nextState.rotationAngles);
+    }
   };
 
   const addPanelAndFinishPolygon = () => {
     if (points.length >= 6) {
-      setPolygons([...polygons, points]);
+      const newPolygons = polygons.concat([points]);
+      setPolygons(newPolygons);
       const newSideLengths = getSideLengths(points);
       setSideLengths([...sideLengths, newSideLengths]);
       const newRectangles = rectangles.slice();
@@ -129,10 +180,18 @@ const CustomImage = ({ serverResponse, loader }) => {
         startX += deltaX;
       }
 
-      const newHistory = history.slice(0, historyStep + 1);
-      newHistory.push(newRectangles);
+      const newHistory = [
+        ...history.slice(0, historyIndex + 1),
+        {
+          polygons: newPolygons,
+          rectangles: newRectangles,
+          points: [],
+          sideLengths: [...sideLengths, newSideLengths],
+          rotationAngles: [...rotationAngles, 0],
+        },
+      ];
       setHistory(newHistory);
-      setHistoryStep(newHistory.length - 1);
+      setHistoryIndex(newHistory.length - 1);
 
       setRectangles(newRectangles);
       setPoints([]); // Reset points for the next polygon
@@ -228,29 +287,31 @@ const CustomImage = ({ serverResponse, loader }) => {
       x: e.target.x(),
       y: e.target.y(),
     };
-    const newHistory = history.slice(0, historyStep + 1);
-    newHistory.push(newRectangles);
+    const newHistory = [
+      ...history.slice(0, historyIndex + 1),
+      {
+        polygons: polygons,
+        rectangles: newRectangles,
+        points: points,
+        sideLengths: sideLengths,
+        rotationAngles: rotationAngles,
+      },
+    ];
     setHistory(newHistory);
-    setHistoryStep(newHistory.length - 1);
+    setHistoryIndex(newHistory.length - 1);
     setRectangles(newRectangles);
   };
 
   const handleRectClick = (index) => {
     setSelectedRectIndex(index);
-  };
-
-  const handleRedo = () => {
-    if (historyStep < history.length - 1) {
-      setHistoryStep((prevStep) => prevStep + 1);
-      const nextState = history[historyStep + 1];
-      setRectangles(nextState);
+    if (transformerRef.current) {
+      transformerRef.current.nodes([shapeRef.current]);
     }
   };
+  
 
   const handleAddRectangle = () => {
-    if (!image) return; 
-
-    // Set rectangle placement mode when clicking "Add Rectangle" button
+    if (!image) return;
     setRectanglePlacementMode(true);
   };
 
@@ -262,12 +323,25 @@ const CustomImage = ({ serverResponse, loader }) => {
         width: panelLength,
         height: panelWidth,
       };
-      setRectangles([...rectangles, newRect]);
-      setRotationAngles([...rotationAngles, 0]); // Initialize rotation angle
-
+      const newRectangles = [...rectangles, newRect];
+      const newRotationAngles = [...rotationAngles, 0]; // Initialize rotation angle
+      const newHistory = [
+        ...history.slice(0, historyIndex + 1),
+        {
+          polygons: polygons,
+          rectangles: newRectangles,
+          points: points,
+          sideLengths: sideLengths,
+          rotationAngles: newRotationAngles,
+        },
+      ];
+      setHistory(newHistory);
+      setHistoryIndex(newHistory.length - 1);
       // Reset rectangle placement mode and position
       setRectanglePlacementMode(false);
       setNewRectanglePosition(null);
+      setRectangles(newRectangles);
+      setRotationAngles(newRotationAngles);
     }
   };
 
@@ -279,28 +353,29 @@ const CustomImage = ({ serverResponse, loader }) => {
       const newRotationAngles = rotationAngles.filter(
         (_, index) => index !== selectedRectIndex
       );
+      const newHistory = [...history.slice(0, historyIndex + 1), {
+        polygons: polygons,
+        rectangles: newRectangles,
+        points: points,
+        sideLengths: sideLengths,
+        rotationAngles: newRotationAngles,
+      }];
+      setHistory(newHistory);
+      setHistoryIndex(newHistory.length - 1);
       setRectangles(newRectangles);
       setRotationAngles(newRotationAngles);
       setSelectedRectIndex(null);
     }
   };
 
-  useEffect(() => {
-    const handleResize = () => {
-      setStageDimensions({
-        width: window.innerWidth,
-        height: window.innerHeight,
-      });
-    };
 
-    handleResize();
 
-    window.addEventListener("resize", handleResize);
-
-    return () => {
-      window.removeEventListener("resize", handleResize);
-    };
-  }, []);
+  React.useEffect(() => {
+    if (selectedRectIndex !== null) {
+      transformerRef.current.nodes([shapeRef.current]);
+      transformerRef.current.getLayer().batchDraw();
+    }
+  }, [selectedRectIndex, rectangles]);
 
   return (
     <>
@@ -335,15 +410,16 @@ const CustomImage = ({ serverResponse, loader }) => {
               fill="blue"
               draggable
               onDragEnd={(e) => handleRectDragEnd(index, e)}
-              rotation={rotationAngles[index]}
+              rotation={rect.rotation}
+              offsetX={rect.offsetX}
+              offsetY={rect.offsetY}
               onClick={() => handleRectClick(index)}
+              ref={index === selectedRectIndex ? shapeRef : null}            
             />
           ))}
           {selectedRectIndex !== null && (
             <Transformer
               ref={transformerRef}
-              selectedShape={rectangles[selectedRectIndex]}
-              flipEnabled={false}
               boundBoxFunc={(oldBox, newBox) => {
                 if (Math.abs(newBox.width) < 5 || Math.abs(newBox.height) < 5) {
                   return oldBox;
@@ -352,8 +428,7 @@ const CustomImage = ({ serverResponse, loader }) => {
               }}
             />
           )}
-          {rectanglePlacementMode && (
-            // Render a temporary rectangle at the cursor position in rectangle placement mode
+          {rectanglePlacementMode &&
             newRectanglePosition && (
               <Rect
                 x={newRectanglePosition.x - panelLength / 2}
@@ -363,23 +438,18 @@ const CustomImage = ({ serverResponse, loader }) => {
                 fill="blue"
                 opacity={0.5}
               />
-            )
-          )}
+            )}
         </Layer>
-        {imageShown && ( // Conditionally render the polygon layer after image is shown
+        {imageShown && ( 
           <Layer ref={polygonLayerRef}>
             <Line points={points} stroke="red" />
             {polygons.map((polygonPoints, index) => (
-              <Line
-                key={index}
-                points={polygonPoints}
-                stroke="red"
-              />
+              <Line key={index} points={polygonPoints} stroke="red" />
             ))}
           </Layer>
         )}
       </Stage>
-      {imageShown && ( // Conditionally render the buttons after image is shown
+      {imageShown && ( 
         <div className="flex items-center justify-center">
           <Button onClick={handleUndo}>
             <span>Undo</span>
