@@ -31,12 +31,16 @@ const CustomImage = ({ serverResponse, loader }) => {
   const panelLayerRef = useRef(null);
   const shapeRef = React.useRef(null);
 
-  const panelLength = 10;
-  const panelWidth = 10;
+  const panelWidthInches = 42;
+  const panelLengthInches = 74;
+  const meterPerInch = 0.0254;
+  const pixelPerMeter = 10;
+  const panelLength = (panelLengthInches * meterPerInch ) * pixelPerMeter;
+  const panelWidth = (panelWidthInches * meterPerInch ) * pixelPerMeter;;
   const transformerRef = useRef(null);
   const [history, setHistory] = useState([]); // New history state to track all actions
   const [historyIndex, setHistoryIndex] = useState(-1); // Index to track current state in history
-
+console.log("points", points)
   useEffect(() => {
     const uint8Array = new Uint8Array(serverResponse);
     const blob = new Blob([uint8Array], { type: "image/jpeg" });
