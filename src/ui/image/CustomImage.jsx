@@ -36,7 +36,7 @@ const CustomImage = ({ serverResponse, loader }) => {
   const transformerRef = useRef(null);
   const [history, setHistory] = useState([]); // New history state to track all actions
   const [historyIndex, setHistoryIndex] = useState(-1); // Index to track current state in history
-  console.log("selectedRectIndex");
+
   useEffect(() => {
     const uint8Array = new Uint8Array(serverResponse);
     const blob = new Blob([uint8Array], { type: "image/jpeg" });
@@ -108,6 +108,20 @@ const CustomImage = ({ serverResponse, loader }) => {
             pointerPosition.y,
           ]);
           setPoints(newPoints);
+
+          // Update history when adding a new point to the polygon line
+          const newHistory = [
+            ...history.slice(0, historyIndex + 1),
+            {
+              polygons: polygons,
+              rectangles: rectangles,
+              points: newPoints,
+              sideLengths: sideLengths,
+              rotationAngles: rotationAngles,
+            },
+          ];
+          setHistory(newHistory);
+          setHistoryIndex(newHistory.length - 1);
         }
       }
     }
@@ -308,7 +322,6 @@ const CustomImage = ({ serverResponse, loader }) => {
       transformerRef.current.nodes([shapeRef.current]);
     }
   };
-  
 
   const handleAddRectangle = () => {
     if (!image) return;
@@ -353,13 +366,16 @@ const CustomImage = ({ serverResponse, loader }) => {
       const newRotationAngles = rotationAngles.filter(
         (_, index) => index !== selectedRectIndex
       );
-      const newHistory = [...history.slice(0, historyIndex + 1), {
-        polygons: polygons,
-        rectangles: newRectangles,
-        points: points,
-        sideLengths: sideLengths,
-        rotationAngles: newRotationAngles,
-      }];
+      const newHistory = [
+        ...history.slice(0, historyIndex + 1),
+        {
+          polygons: polygons,
+          rectangles: newRectangles,
+          points: points,
+          sideLengths: sideLengths,
+          rotationAngles: newRotationAngles,
+        },
+      ];
       setHistory(newHistory);
       setHistoryIndex(newHistory.length - 1);
       setRectangles(newRectangles);
@@ -368,12 +384,10 @@ const CustomImage = ({ serverResponse, loader }) => {
     }
   };
 
-
-
   React.useEffect(() => {
     if (selectedRectIndex !== null) {
-      transformerRef.current.nodes([shapeRef.current]);
-      transformerRef.current.getLayer().batchDraw();
+      transformerRef?.current?.nodes([shapeRef?.current]);
+      transformerRef?.current?.getLayer().batchDraw();
     }
   }, [selectedRectIndex, rectangles]);
 
@@ -414,7 +428,7 @@ const CustomImage = ({ serverResponse, loader }) => {
               offsetX={rect.offsetX}
               offsetY={rect.offsetY}
               onClick={() => handleRectClick(index)}
-              ref={index === selectedRectIndex ? shapeRef : null}            
+              ref={index === selectedRectIndex ? shapeRef : null}
             />
           ))}
           {selectedRectIndex !== null && (
@@ -428,19 +442,18 @@ const CustomImage = ({ serverResponse, loader }) => {
               }}
             />
           )}
-          {rectanglePlacementMode &&
-            newRectanglePosition && (
-              <Rect
-                x={newRectanglePosition.x - panelLength / 2}
-                y={newRectanglePosition.y - panelWidth / 2}
-                width={panelLength}
-                height={panelWidth}
-                fill="blue"
-                opacity={0.5}
-              />
-            )}
+          {rectanglePlacementMode && newRectanglePosition && (
+            <Rect
+              x={newRectanglePosition.x - panelLength / 2}
+              y={newRectanglePosition.y - panelWidth / 2}
+              width={panelLength}
+              height={panelWidth}
+              fill="blue"
+              opacity={0.5}
+            />
+          )}
         </Layer>
-        {imageShown && ( 
+        {imageShown && (
           <Layer ref={polygonLayerRef}>
             <Line points={points} stroke="red" />
             {polygons.map((polygonPoints, index) => (
@@ -449,7 +462,7 @@ const CustomImage = ({ serverResponse, loader }) => {
           </Layer>
         )}
       </Stage>
-      {imageShown && ( 
+      {imageShown && (
         <div className="flex items-center justify-center">
           <Button onClick={handleUndo}>
             <span>Undo</span>
