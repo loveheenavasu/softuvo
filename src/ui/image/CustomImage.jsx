@@ -1,3 +1,4 @@
+'use client'
 import React, { useState, useEffect, useRef } from "react";
 import {
   Stage,
@@ -9,6 +10,7 @@ import {
   Group,
 } from "react-konva";
 import { Button, CircularProgress } from "@mui/material";
+import SideBar from "../sidebar/SideBar";
 
 const CustomImage = ({ serverResponse, loader }) => {
   const [imageElement, setImageElement] = useState(null);
@@ -23,24 +25,28 @@ const CustomImage = ({ serverResponse, loader }) => {
     width: 0,
     height: 0,
   });
-  const [imageShown, setImageShown] = useState(false); // Flag to track if image is shown
-  const [rectanglePlacementMode, setRectanglePlacementMode] = useState(false); // Flag to track rectangle placement mode
-  const [newRectanglePosition, setNewRectanglePosition] = useState(null); // Track position for new rectangle
+  const [imageShown, setImageShown] = useState(false);
+  const [rectanglePlacementMode, setRectanglePlacementMode] = useState(false);
+  const [newRectanglePosition, setNewRectanglePosition] = useState(null);
   const stageRef = useRef(null);
   const polygonLayerRef = useRef(null);
   const panelLayerRef = useRef(null);
-  const shapeRef = React.useRef(null);
+  const shapeRef = useRef(null);
+  const transformerRef = useRef(null);
+  const [history, setHistory] = useState([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
 
+  // Constants for panel size
   const panelWidthInches = 42;
   const panelLengthInches = 74;
   const meterPerInch = 0.0254;
   const pixelPerMeter = 10;
   const panelLength = (panelLengthInches * meterPerInch ) * pixelPerMeter;
-  const panelWidth = (panelWidthInches * meterPerInch ) * pixelPerMeter;;
-  const transformerRef = useRef(null);
-  const [history, setHistory] = useState([]); // New history state to track all actions
-  const [historyIndex, setHistoryIndex] = useState(-1); // Index to track current state in history
-console.log("points", points)
+  const panelWidth = (panelWidthInches * meterPerInch ) * pixelPerMeter;
+
+
+  console.log(rotationAngles, "rotationAngles")
+
   useEffect(() => {
     const uint8Array = new Uint8Array(serverResponse);
     const blob = new Blob([uint8Array], { type: "image/jpeg" });
@@ -49,7 +55,7 @@ console.log("points", points)
     const img = new window.Image();
     img.onload = () => {
       setImageElement(img);
-      setImageShown(true); // Set imageShown to true once image is loaded
+      setImageShown(true);
     };
     img.src = url;
 
@@ -83,12 +89,12 @@ console.log("points", points)
 
   const handleStageClick = (e) => {
     if (!imageShown) return;
-
+  
     const stage = stageRef.current;
     const pointerPosition = stage.getPointerPosition();
-
+  
     const imageBoundingBox = stageRef.current.findOne("Image").getClientRect();
-
+  
     if (
       pointerPosition.x >= imageBoundingBox.x &&
       pointerPosition.x <= imageBoundingBox.x + imageBoundingBox.width &&
@@ -96,7 +102,6 @@ console.log("points", points)
       pointerPosition.y <= imageBoundingBox.y + imageBoundingBox.height
     ) {
       if (rectanglePlacementMode) {
-        // If in rectangle placement mode, set the position for the new rectangle
         setNewRectanglePosition({ x: pointerPosition.x, y: pointerPosition.y });
       } else {
         const clickedPoint = { x: pointerPosition.x, y: pointerPosition.y };
@@ -105,15 +110,14 @@ console.log("points", points)
             isPointInsidePolygon(clickedPoint, polygon)
           ) ||
           rectangles.some((rect) => isPointInsideRectangle(clickedPoint, rect));
-
+  
         if (!insidePolygonOrRectangle) {
           const newPoints = points.concat([
             pointerPosition.x,
             pointerPosition.y,
           ]);
           setPoints(newPoints);
-
-          // Update history when adding a new point to the polygon line
+  
           const newHistory = [
             ...history.slice(0, historyIndex + 1),
             {
@@ -128,30 +132,39 @@ console.log("points", points)
           setHistoryIndex(newHistory.length - 1);
         }
       }
+    } else {
+      // Clicked outside of the image area, deselect any selected rectangle
+      setSelectedRectIndex(null);
     }
   };
+  
 
   const handleUndo = () => {
     if (historyIndex > 0) {
-      setHistoryIndex(historyIndex - 1);
       const previousState = history[historyIndex - 1];
       setPolygons(previousState.polygons);
       setRectangles(previousState.rectangles);
       setPoints(previousState.points);
       setSideLengths(previousState.sideLengths);
       setRotationAngles(previousState.rotationAngles);
+      setHistoryIndex(historyIndex - 1);
+    } else {
+      // If the last action was adding a point, remove the last point
+      const newPoints = points.slice(0, -2);
+      setPoints(newPoints);
     }
   };
+  
 
   const handleRedo = () => {
     if (historyIndex < history.length - 1) {
-      setHistoryIndex(historyIndex + 1);
       const nextState = history[historyIndex + 1];
       setPolygons(nextState.polygons);
       setRectangles(nextState.rectangles);
       setPoints(nextState.points);
       setSideLengths(nextState.sideLengths);
       setRotationAngles(nextState.rotationAngles);
+      setHistoryIndex(historyIndex + 1);
     }
   };
 
@@ -188,10 +201,9 @@ console.log("points", points)
             height: panelWidth,
           };
 
-          // Check if the rectangle is completely inside the polygon
           if (isRectangleInsidePolygon(rect, polygonPoints)) {
             newRectangles.push(rect);
-            setRotationAngles((prevAngles) => [...prevAngles, 0]); // Initialize rotation angle
+            setRotationAngles((prevAngles) => [...prevAngles, 0]);
           }
         }
 
@@ -205,14 +217,14 @@ console.log("points", points)
           rectangles: newRectangles,
           points: [],
           sideLengths: [...sideLengths, newSideLengths],
-          rotationAngles: [...rotationAngles, 0],
+          rotationAngles: rotationAngles,
         },
       ];
       setHistory(newHistory);
       setHistoryIndex(newHistory.length - 1);
 
       setRectangles(newRectangles);
-      setPoints([]); // Reset points for the next polygon
+      setPoints([]);
     }
   };
 
@@ -341,7 +353,7 @@ console.log("points", points)
         height: panelWidth,
       };
       const newRectangles = [...rectangles, newRect];
-      const newRotationAngles = [...rotationAngles, 0]; // Initialize rotation angle
+      const newRotationAngles = [...rotationAngles, 0];
       const newHistory = [
         ...history.slice(0, historyIndex + 1),
         {
@@ -349,16 +361,13 @@ console.log("points", points)
           rectangles: newRectangles,
           points: points,
           sideLengths: sideLengths,
-          rotationAngles: newRotationAngles,
         },
       ];
       setHistory(newHistory);
       setHistoryIndex(newHistory.length - 1);
-      // Reset rectangle placement mode and position
       setRectanglePlacementMode(false);
       setNewRectanglePosition(null);
       setRectangles(newRectangles);
-      setRotationAngles(newRotationAngles);
     }
   };
 
@@ -388,12 +397,77 @@ console.log("points", points)
     }
   };
 
+  const handleTransform = (index, newAttrs) => {
+    console.log('newAttrs',newAttrs)
+    const newRectangles = rectangles.slice();
+    const updatedAttrs = { ...newRectangles[index], ...newAttrs };
+  
+    // Extract rotation value
+    const rotation = newAttrs.target.attrs.rotation;
+  
+    // Check if rotation or size changed
+    const rotationChanged = rotation !== undefined;
+    const sizeChanged = newAttrs.target.attrs.width !== undefined || newAttrs.height !== undefined;
+  
+    if (rotationChanged || sizeChanged) {
+      if (rotationChanged) {
+        // Update rotation angle in rotationAngles state
+        const newRotationAngles = [...rotationAngles];
+        newRotationAngles[index] = rotation;
+        setRotationAngles(newRotationAngles);
+      }
+      if (sizeChanged) {
+        // Ensure minimum size
+        updatedAttrs.width = Math.max(updatedAttrs.width, 5);
+        updatedAttrs.height = Math.max(updatedAttrs.height, 5);
+      }
+  
+      // Update history with the new state
+      const newHistory = [
+        ...history.slice(0, historyIndex + 1),
+        {
+          polygons: polygons,
+          rectangles: newRectangles,
+          points: points,
+          sideLengths: sideLengths,
+          rotationAngles: rotationAngles,
+        },
+      ];
+      setHistory(newHistory);
+      setHistoryIndex(newHistory.length - 1);
+    }
+  
+    // Update the rectangles state
+    newRectangles[index] = updatedAttrs;
+    setRectangles(newRectangles);
+  };
+  
+  
+  
+
   React.useEffect(() => {
     if (selectedRectIndex !== null) {
       transformerRef?.current?.nodes([shapeRef?.current]);
       transformerRef?.current?.getLayer().batchDraw();
     }
   }, [selectedRectIndex, rectangles]);
+
+  const centerImage = () => {
+    if (image && stageRef.current) {
+      const stage = stageRef.current;
+      const stageWidth = stage.width();
+      const stageHeight = stage.height();
+      const imageWidth = image.width;
+      const imageHeight = image.height;
+      const scale = Math.min(stageWidth / imageWidth, stageHeight / imageHeight);
+      const offsetX = (stageWidth - imageWidth * scale) / 2;
+      const offsetY = (stageHeight - imageHeight * scale) / 2;
+      return { offsetX, offsetY, scale };
+    }
+    return { offsetX: 0, offsetY: 0, scale: 1 };
+  };
+
+  const { offsetX, offsetY, scale } = centerImage();
 
   return (
     <>
@@ -402,21 +476,23 @@ console.log("points", points)
           <CircularProgress />
         </div>
       )}
+      <div className="relative">
       <Stage
         className="flex items-center justify-center"
         width={stageDimensions.width}
         height={stageDimensions.height}
         onClick={handleStageClick}
         ref={stageRef}
+        scaleX={1} // Ensure that the stage scale is set to 1
+        scaleY={1}
+        centerX // Center the stage horizontally
+        centerY // Center the stage vertically
+
       >
         <Layer ref={panelLayerRef}>
           {image && (
-            <Group
-              x={(stageDimensions.width - image.width) / 2}
-              y={(stageDimensions.height - image.height) / 2}
-            >
-              <Image image={image} alt="image" />
-            </Group>
+        
+              <Image image={image} alt="image" width={stageDimensions.width} height={stageDimensions.height} />
           )}
           {rectangles.map((rect, index) => (
             <Rect
@@ -439,11 +515,18 @@ console.log("points", points)
             <Transformer
               ref={transformerRef}
               boundBoxFunc={(oldBox, newBox) => {
-                if (Math.abs(newBox.width) < 5 || Math.abs(newBox.height) < 5) {
+                if (
+                  Math.abs(newBox.width) < 5 ||
+                  Math.abs(newBox.height) < 5
+                ) {
                   return oldBox;
                 }
                 return newBox;
               }}
+              rotateEnabled
+              onTransform={(newAttrs) =>
+                handleTransform(selectedRectIndex, newAttrs)
+              }
             />
           )}
           {rectanglePlacementMode && newRectanglePosition && (
@@ -466,6 +549,7 @@ console.log("points", points)
           </Layer>
         )}
       </Stage>
+      <SideBar/>
       {imageShown && (
         <div className="flex items-center justify-center">
           <Button onClick={handleUndo}>
@@ -495,6 +579,7 @@ console.log("points", points)
           Side Lengths of Polygon {index + 1}: {sideLength.join(", ")}
         </div>
       ))}
+      </div>
     </>
   );
 };

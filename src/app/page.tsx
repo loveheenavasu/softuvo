@@ -1,4 +1,5 @@
 import AddressForm from "@/ui/forms/AddressForm";
+import CustomImage from "@/ui/image/CustomImage";
 // import CustomImage from "../ui/image/CustomImage"
 export default async function Home() {
 

@@ -1,0 +1,14 @@
+.sidebar {
+  /* width: 300px; */
+  /* height: auto; Adjust sidebar width as needed */
+  /* background-color: black; */
+  color: #fff;
+  padding: 20px 0;
+  position: absolute;
+  top: 2rem;
+  right: 1rem;
+
+}
+.mui-input-label.focused {
+    color: red;
+  }
