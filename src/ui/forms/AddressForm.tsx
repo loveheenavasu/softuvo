@@ -14,6 +14,7 @@ import { Button } from "@mui/material";
 import { getSolarLayerData } from "@/app/actions/solarLayerData";
 import CustomImage from "../image/CustomImage";
 import { getGeoTiff } from "@/app/actions/getGeoTiff";
+import { useImageContext } from "@/app/context/sidebarContext/ImageProvider";
 
 const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 
@@ -55,6 +56,7 @@ export default function AddressForm() {
     handleSubmit,
     formState: { errors },
   } = useForm<Inputs>();
+  const {handleRefresh}  = useImageContext()
   const [value, setValue] = React.useState<PlaceType | null>(null);
   const [inputValue, setInputValue] = React.useState("");
   const [options, setOptions] = React.useState<readonly PlaceType[]>([]);
@@ -158,12 +160,12 @@ export default function AddressForm() {
       setIsSubmitting(false);
     }
   };
-  
+
   return (
     <>
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className="flex items-center justify-center"
+        className="absolute top-5 right-6  z-20"
       >
         <Autocomplete
           id="google-map-demo"
@@ -181,17 +183,33 @@ export default function AddressForm() {
           onChange={(event: any, newValue: PlaceType | null) => {
             setOptions(newValue ? [newValue, ...options] : options);
             setValue(newValue);
+            loaded.current = false;
+            handleSubmit(onSubmit)();
+            handleRefresh()
+
           }}
           onInputChange={(event, newInputValue) => {
             setInputValue(newInputValue);
           }}
           renderInput={(params) => (
             <TextField
+            className="text-white bg-black"
               {...params}
               {...register("address", {
                 required: "address is required",
-                // maxLength: 20,
               })}
+              sx={{
+                input: {
+                  color: "white",
+                },  
+                "& fieldset": { border: 'none' },
+                ".MuiInputLabel-root": {
+                  color: "white",
+                },
+                '.MuiSvgIcon-root ': {
+                  fill: "white !important",
+                },
+              }}
               name="address"
               label="Add a location"
               fullWidth
@@ -239,9 +257,6 @@ export default function AddressForm() {
             );
           }}
         />
-        <Button className="border" type="submit">
-          Submit
-        </Button>
       </form>
       <div className="m-auto mt-5">
         <CustomImage serverResponse={serverResponse} loader={isSubmitting} />
