@@ -498,6 +498,8 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
           points: points,
           sideLengths: sideLengths,
           totalPanelsAdded : totalPanelsAdded+1,
+          rotationAngles : rotationAngles,
+          transformerAttrs : transformerAttrs
         },
       ];
       setHistory(newHistory);
