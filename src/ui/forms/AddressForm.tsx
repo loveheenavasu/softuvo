@@ -56,12 +56,14 @@ export default function AddressForm() {
     handleSubmit,
     formState: { errors },
   } = useForm<Inputs>();
-  const {handleRefresh}  = useImageContext()
+  const { handleRefresh } = useImageContext();
   const [value, setValue] = React.useState<PlaceType | null>(null);
   const [inputValue, setInputValue] = React.useState("");
   const [options, setOptions] = React.useState<readonly PlaceType[]>([]);
   const loaded = React.useRef(false);
-  const [serverResponse, setServerResponse] = React.useState<Buffer | undefined>(undefined);
+  const [serverResponse, setServerResponse] = React.useState<
+    Buffer | undefined
+  >(undefined);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   if (typeof window !== "undefined" && !loaded.current) {
@@ -139,19 +141,20 @@ export default function AddressForm() {
       const response = await getGeoCode(formData);
       const latitude = response?.results[0]?.geometry?.location.lat;
       const longitude = response?.results[0]?.geometry.location.lng;
-  
+
       if (latitude !== undefined && longitude !== undefined) {
         const solarResponse = await getSolarLayerData(latitude, longitude);
-  
+
         if (typeof solarResponse === "string") {
-          const geotiff = await getGeoTiff(solarResponse, process.env.GOOGLE_MAPS_API_KEY || "");
+          const geotiff = await getGeoTiff(
+            solarResponse,
+            process.env.GOOGLE_MAPS_API_KEY || ""
+          );
           setServerResponse(geotiff);
         } else {
-          // Handle the case where solarResponse is not a string (e.g., undefined)
           console.error("Solar response is not a string:", solarResponse);
         }
       } else {
-        // Handle the case where latitude or longitude is undefined
         console.error("Latitude or longitude is undefined");
       }
     } catch (error) {
@@ -168,6 +171,7 @@ export default function AddressForm() {
         className="absolute top-5 right-6  z-20"
       >
         <Autocomplete
+          key={value?.description}
           id="google-map-demo"
           sx={{ width: 300 }}
           getOptionLabel={(option) =>
@@ -183,17 +187,21 @@ export default function AddressForm() {
           onChange={(event: any, newValue: PlaceType | null) => {
             setOptions(newValue ? [newValue, ...options] : options);
             setValue(newValue);
-            loaded.current = false;
-            handleSubmit(onSubmit)();
-            handleRefresh()
-
+            if (newValue) {
+              setIsSubmitting(true);
+              handleSubmit(onSubmit)();
+              handleRefresh();
+            } else {
+              console.log("No location selected. Resetting loader.");
+              setIsSubmitting(false);
+            }
           }}
           onInputChange={(event, newInputValue) => {
             setInputValue(newInputValue);
           }}
           renderInput={(params) => (
             <TextField
-            className="text-white bg-black"
+              className="text-white bg-black"
               {...params}
               {...register("address", {
                 required: "address is required",
@@ -201,12 +209,12 @@ export default function AddressForm() {
               sx={{
                 input: {
                   color: "white",
-                },  
-                "& fieldset": { border: 'none' },
+                },
+                "& fieldset": { border: "none" },
                 ".MuiInputLabel-root": {
                   color: "white",
                 },
-                '.MuiSvgIcon-root ': {
+                ".MuiSvgIcon-root ": {
                   fill: "white !important",
                 },
               }}
@@ -228,7 +236,6 @@ export default function AddressForm() {
                 match.offset + match.length,
               ])
             );
-
             return (
               <li {...props}>
                 <Grid container alignItems="center">

@@ -30,7 +30,7 @@ export interface Panel {
 export interface PanelData {
   panels: Panel[];
   totalCount: number;
-  pages: null | any; // Adjust type as per actual data structure
+  pages: null | any;
 }
 
 export async function getAllPanels(): Promise<PanelData | undefined> {
