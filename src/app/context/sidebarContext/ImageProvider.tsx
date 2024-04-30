@@ -81,6 +81,9 @@ interface ImageContextProps {
   handleSelectPanel: () => void;
   setSelectedPanel: React.Dispatch<React.SetStateAction<Panel | null>>;
   selectedPanel: Panel | null;
+  drawingMode: boolean;
+  setDrawingMode: React.Dispatch<React.SetStateAction<boolean>>;
+  handleDrawPolygon: () => void;
 }
 
 interface TransformAttributes {
@@ -145,6 +148,7 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
   const [panelWidth, setPanelWidth] = useState<number>(0);
   const [transformerAttrs, setTransformerAttrs] = useState(null);
   const [selectedPanel, setSelectedPanel] = useState<Panel | null>(null);
+  const [drawingMode, setDrawingMode] = useState<boolean>(false); // State variable to track drawing mode
 
   const handleSelectPanel = (panel: Panel | null) => {
     if (panel) {
@@ -152,19 +156,18 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
         ...history.slice(0, historyIndex + 1),
         {
           selectedPanel: panel.modelName,
-          totalPanelsAdded: totalPanelsAdded
+          totalPanelsAdded: totalPanelsAdded,
         },
       ];
-      setSelectedPanel(selectedPanel)
+      setSelectedPanel(selectedPanel);
       setHistory(newHistory);
       setHistoryIndex(newHistory.length - 1);
     }
-          setSelectedPanel(panel)
-
+    setSelectedPanel(panel);
   };
 
   const TotalPanelsAdded = (count: number) => {
-    console.log("count",count)
+    console.log("count", count);
     setTotalPanelsAdded(count);
     const newHistory = [
       ...history.slice(0, historyIndex + 1),
@@ -175,17 +178,37 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
         sideLengths: sideLengths,
         rotationAngles: rotationAngles,
         transformerAttrs: transformerAttrs,
-        totalPanelsAdded : count
+        totalPanelsAdded: count,
       },
     ];
     setHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
   };
 
+  const handleDrawPolygon = () => {
+    setDrawingMode(!drawingMode);
+    if (!drawingMode) {
+      setPoints([]);
+      setHistory([
+        ...history.slice(0, historyIndex + 1),
+        {
+          polygons: polygons,
+          rectangles: rectangles,
+          points: [],
+          sideLengths: sideLengths,
+          rotationAngles: rotationAngles,
+          transformerAttrs: transformerAttrs,
+        },
+      ]);
+      setHistoryIndex(historyIndex + 1);
+    }
+  };
+
   const handleStageClick = () => {
     const stage = stageRef.current;
     const pointerPosition = stage.getPointerPosition();
 
+    // Get the bounding box of the image
     const imageBoundingBox = stageRef.current.findOne("Image").getClientRect();
 
     if (
@@ -194,37 +217,51 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
       pointerPosition.y >= imageBoundingBox.y &&
       pointerPosition.y <= imageBoundingBox.y + imageBoundingBox.height
     ) {
-      if (rectanglePlacementMode) {
-        setNewRectanglePosition({ x: pointerPosition.x, y: pointerPosition.y });
-      } else {
-        const clickedPoint = { x: pointerPosition.x, y: pointerPosition.y };
-        const insidePolygonOrRectangle =
-          polygons.some((polygon) =>
-            isPointInsidePolygon(clickedPoint, polygon)
-          ) ||
-          rectangles.some((rect) => isPointInsideRectangle(clickedPoint, rect));
+      // If the click is inside the image area
+      if (drawingMode) {
+        if (rectanglePlacementMode) {
+          // If in rectangle placement mode, set new rectangle position
+          setNewRectanglePosition({
+            x: pointerPosition.x,
+            y: pointerPosition.y,
+          });
+        } else {
+          // If not in rectangle placement mode
+          const clickedPoint = { x: pointerPosition.x, y: pointerPosition.y };
+          const insidePolygonOrRectangle =
+            polygons.some((polygon) =>
+              isPointInsidePolygon(clickedPoint, polygon)
+            ) ||
+            rectangles.some((rect) =>
+              isPointInsideRectangle(clickedPoint, rect)
+            );
 
-        if (!insidePolygonOrRectangle) {
-          const newPoints = points.concat([
-            pointerPosition.x,
-            pointerPosition.y,
-          ]);
-          setPoints(newPoints);
+          if (!insidePolygonOrRectangle) {
+            // If not inside any polygon or rectangle, add new point
+            const newPoints = points.concat([
+              pointerPosition.x,
+              pointerPosition.y,
+            ]);
+            setPoints(newPoints);
 
-          const newHistory = [
-            ...history.slice(0, historyIndex + 1),
-            {
-              polygons: polygons,
-              rectangles: rectangles,
-              points: newPoints,
-              sideLengths: sideLengths,
-              rotationAngles: rotationAngles,
-              transformerAttrs: transformerAttrs, // Include transformer attributes in history
-            },
-          ];
-          setHistory(newHistory);
-          setHistoryIndex(newHistory.length - 1);
+            const newHistory = [
+              ...history.slice(0, historyIndex + 1),
+              {
+                polygons: polygons,
+                rectangles: rectangles,
+                points: newPoints,
+                sideLengths: sideLengths,
+                rotationAngles: rotationAngles,
+                transformerAttrs: transformerAttrs, // Include transformer attributes in history
+              },
+            ];
+            setHistory(newHistory);
+            setHistoryIndex(newHistory.length - 1);
+          }
         }
+      } else {
+        // Clicked on the image but not in drawing mode, deselect any selected rectangle
+        setSelectedRectIndex(null);
       }
     } else {
       // Clicked outside of the image area, deselect any selected rectangle
@@ -310,7 +347,7 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
         const panelWidthWithGap = panelWidth + 10;
         const panelLengthWithGap = panelLength + 10;
 
-        // Calculate the required number of panels
+        // Calculate the required number of panels for this polygon
         const numPanelsLength = Math.floor(
           (polygonArea - 5 * panelWidthWithGap) / panelLengthWithGap
         );
@@ -318,17 +355,21 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
           (polygonArea - 5 * panelLengthWithGap) / panelWidthWithGap
         );
         const numPanels = numPanelsLength * numPanelsWidth;
+
         // Calculate the centroid of the polygon
         const centroid = calculateCentroid(polygonPoints);
-        // Initialize variables for panel placement
+
+        // Initialize variables for panel placement and counting total panels added
         let panelX = centroid.x - (numPanelsLength * panelLengthWithGap) / 2;
         let panelY = centroid.y - (numPanelsWidth * panelWidthWithGap) / 2;
+        let numPanelsAdded = 0;
+
         // Remove existing panels from the same polygon
         newRectangles = newRectangles.filter(
           (rect) => !isRectangleInsidePolygon(rect, polygonPoints)
         );
-        // Count the number of panels added
-        let numPanelsAdded = 0;
+
+        // Iterate over all possible panel positions
         for (let i = 0; i < numPanels; i++) {
           if (
             panelX + panelLengthWithGap >
@@ -361,7 +402,9 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
           }
           panelX += panelLengthWithGap;
         }
-        TotalPanelsAdded(numPanelsAdded);
+
+        // Update total panels added for this polygon
+        TotalPanelsAdded((prevTotal: number) => prevTotal + numPanelsAdded);
 
         // Update history with the new state
         const newHistory = [
@@ -372,7 +415,7 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
             points: newPoints,
             sideLengths: [...sideLengths, newSideLengths],
             rotationAngles: rotationAngles,
-            totalPanelsAdded: numPanelsAdded,
+            totalPanelsAdded: numPanelsAdded, // Update total panels added for this polygon
             selectedPanel: selectedPanel,
             transformerAttrs: transformerAttrs, // Include transformer attributes in history
           },
@@ -384,7 +427,6 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
         setHistory(newHistory);
         setHistoryIndex(newHistory.length - 1);
         setRectangles(newRectangles);
-        setTotalPanelsAdded(numPanelsAdded);
       }
     }
   };
@@ -479,7 +521,7 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
       x: e.target.x(),
       y: e.target.y(),
     };
-    TotalPanelsAdded(totalPanelsAdded)
+    TotalPanelsAdded(totalPanelsAdded);
     const newHistory = [
       ...history.slice(0, historyIndex + 1),
       {
@@ -489,11 +531,11 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
         sideLengths: sideLengths,
         rotationAngles: rotationAngles,
         selectedPanel: selectedPanel,
-        totalPanelsAdded: totalPanelsAdded
+        totalPanelsAdded: totalPanelsAdded,
       },
     ];
-    setSelectedPanel(selectedPanel)
-    setTotalPanelsAdded(totalPanelsAdded)
+    setSelectedPanel(selectedPanel);
+    setTotalPanelsAdded(totalPanelsAdded);
     setHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
     setRectangles(newRectangles);
@@ -535,19 +577,19 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
           rectangles: newRectangles,
           points: points,
           sideLengths: sideLengths,
-          totalPanelsAdded: (totalPanelsAdded+1),
+          totalPanelsAdded: totalPanelsAdded + 1,
           rotationAngles: rotationAngles,
           selectedPanel: selectedPanel,
           transformerAttrs: transformerAttrs,
         },
       ];
-      setSelectedPanel(selectedPanel)
+      setSelectedPanel(selectedPanel);
       setHistory(newHistory);
       setHistoryIndex(newHistory.length - 1);
       setRectanglePlacementMode(false);
       setNewRectanglePosition(null);
       setRectangles(newRectangles);
-      setTotalPanelsAdded(totalPanelsAdded+1);
+      setTotalPanelsAdded(totalPanelsAdded + 1);
     }
   };
 
@@ -567,17 +609,17 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
           points: points,
           sideLengths: sideLengths,
           rotationAngles: newRotationAngles,
-          selectedPanel : selectedPanel,
-          totalPanelsAdded: (totalPanelsAdded-1),
+          selectedPanel: selectedPanel,
+          totalPanelsAdded: totalPanelsAdded - 1,
         },
       ];
-      setSelectedPanel(selectedPanel)
+      setSelectedPanel(selectedPanel);
       setHistory(newHistory);
       setHistoryIndex(newHistory.length - 1);
       setRectangles(newRectangles);
       setRotationAngles(newRotationAngles);
       setSelectedRectIndex(null);
-      setTotalPanelsAdded(totalPanelsAdded-1);
+      setTotalPanelsAdded(totalPanelsAdded - 1);
     }
   };
 
@@ -599,10 +641,10 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
         sideLengths: sideLengths,
         rotationAngles: [...rotationAngles],
         totalPanelsAdded: totalPanelsAdded,
-        selectedPanel : selectedPanel
+        selectedPanel: selectedPanel,
       },
     ];
-    setSelectedPanel(selectedPanel)
+    setSelectedPanel(selectedPanel);
     setHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
     setRectangles(updatedRectangles);
@@ -690,7 +732,10 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
     setSelectedPanel,
     handleSelectPanel: function (): void {
       throw new Error("Function not implemented.");
-    }
+    },
+    handleDrawPolygon,
+    drawingMode,
+    setDrawingMode,
   };
 
   return (

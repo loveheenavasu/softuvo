@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useState } from "react";
 import styles from "./Sidebar.module.css";
 import { Button } from "@mui/material";
@@ -18,6 +19,8 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import CheckIcon from "@mui/icons-material/Check";
 import { useImageContext } from "@/app/context/sidebarContext/ImageProvider";
 import { Panel } from "@/app/actions/getAllPanels";
+import PolylineIcon from "@mui/icons-material/Polyline";
+import { Cancel } from "@mui/icons-material";
 
 interface Props {
   getAllPanel: {
@@ -90,6 +93,8 @@ const SideBar: React.FC<Props> = ({ getAllPanel }) => {
     handleSelectPanel,
     selectedPanel,
     setSelectedPanel,
+    drawingMode,
+    handleDrawPolygon,
   } = useImageContext();
 
   let panelWattage = selectedPanel ? selectedPanel?.powerWattage / 1000 : 0;
@@ -126,6 +131,9 @@ const SideBar: React.FC<Props> = ({ getAllPanel }) => {
   return (
     <div className={styles.sidebar}>
       <div className="flex justify-between bg-black p-2">
+        <div onClick={handleDrawPolygon}>
+          {drawingMode ? <Cancel /> : <PolylineIcon />}
+        </div>
         <div onClick={handleUndo}>
           <UndoIcon fontSize="medium" />
         </div>
