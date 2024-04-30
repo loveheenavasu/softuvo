@@ -78,6 +78,9 @@ interface ImageContextProps {
   panelLength: number;
   panelWidth: number;
   handleRefresh: () => void;
+  handleSelectPanel: () => void;
+  setSelectedPanel: React.Dispatch<React.SetStateAction<Panel | null>>;
+  selectedPanel: Panel | null;
 }
 
 interface TransformAttributes {
@@ -86,13 +89,11 @@ interface TransformAttributes {
       y: number;
       x: number;
       rotation?: number;
-      width?: number;   
-      height?: number;   
+      width?: number;
+      height?: number;
     };
   };
 }
-
-
 
 const ImageContext = createContext<ImageContextProps | undefined>(undefined);
 
@@ -143,11 +144,42 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
   const [panelLength, setPanelLength] = useState<number>(0);
   const [panelWidth, setPanelWidth] = useState<number>(0);
   const [transformerAttrs, setTransformerAttrs] = useState(null);
+  const [selectedPanel, setSelectedPanel] = useState<Panel | null>(null);
 
+  const handleSelectPanel = (panel: Panel | null) => {
+    if (panel) {
+      const newHistory = [
+        ...history.slice(0, historyIndex + 1),
+        {
+          selectedPanel: panel.modelName,
+          totalPanelsAdded: totalPanelsAdded
+        },
+      ];
+      setSelectedPanel(selectedPanel)
+      setHistory(newHistory);
+      setHistoryIndex(newHistory.length - 1);
+    }
+          setSelectedPanel(panel)
 
+  };
 
   const TotalPanelsAdded = (count: number) => {
+    console.log("count",count)
     setTotalPanelsAdded(count);
+    const newHistory = [
+      ...history.slice(0, historyIndex + 1),
+      {
+        polygons: polygons,
+        rectangles: rectangles,
+        points: points,
+        sideLengths: sideLengths,
+        rotationAngles: rotationAngles,
+        transformerAttrs: transformerAttrs,
+        totalPanelsAdded : count
+      },
+    ];
+    setHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
   };
 
   const handleStageClick = () => {
@@ -188,7 +220,6 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
               sideLengths: sideLengths,
               rotationAngles: rotationAngles,
               transformerAttrs: transformerAttrs, // Include transformer attributes in history
-
             },
           ];
           setHistory(newHistory);
@@ -209,8 +240,9 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
       setPoints(previousState.points);
       setSideLengths(previousState.sideLengths);
       setRotationAngles(previousState.rotationAngles);
-      setTotalPanelsAdded(previousState.totalPanelsAdded || 0)
-      setTransformerAttrs(previousState.transformerAttrs); // Set transformer attributes
+      setTotalPanelsAdded(previousState.totalPanelsAdded || 0);
+      setSelectedPanel(previousState.selectedPanel);
+      setTransformerAttrs(previousState.transformerAttrs);
       setHistoryIndex(historyIndex - 1);
     } else {
       // If the last action was adding a point, remove the last point
@@ -227,9 +259,9 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
       setPoints(nextState.points);
       setSideLengths(nextState.sideLengths);
       setRotationAngles(nextState.rotationAngles);
-      setTotalPanelsAdded(nextState.totalPanelsAdded || 0)
-      setTransformerAttrs(nextState.transformerAttrs); // Set transformer attributes
-
+      setTotalPanelsAdded(nextState.totalPanelsAdded || 0);
+      setSelectedPanel(nextState.selectedPanel);
+      setTransformerAttrs(nextState.transformerAttrs);
       setHistoryIndex(historyIndex + 1);
     }
   };
@@ -340,18 +372,19 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
             points: newPoints,
             sideLengths: [...sideLengths, newSideLengths],
             rotationAngles: rotationAngles,
-            totalPanelsAdded : numPanelsAdded,
+            totalPanelsAdded: numPanelsAdded,
+            selectedPanel: selectedPanel,
             transformerAttrs: transformerAttrs, // Include transformer attributes in history
-
           },
         ];
+        setSelectedPanel(selectedPanel);
         setPoints(newPoints);
         setPolygons(newPolygons);
         setSideLengths([...sideLengths, newSideLengths]);
         setHistory(newHistory);
         setHistoryIndex(newHistory.length - 1);
         setRectangles(newRectangles);
-        setTotalPanelsAdded(numPanelsAdded)
+        setTotalPanelsAdded(numPanelsAdded);
       }
     }
   };
@@ -446,6 +479,7 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
       x: e.target.x(),
       y: e.target.y(),
     };
+    TotalPanelsAdded(totalPanelsAdded)
     const newHistory = [
       ...history.slice(0, historyIndex + 1),
       {
@@ -454,8 +488,12 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
         points: points,
         sideLengths: sideLengths,
         rotationAngles: rotationAngles,
+        selectedPanel: selectedPanel,
+        totalPanelsAdded: totalPanelsAdded
       },
     ];
+    setSelectedPanel(selectedPanel)
+    setTotalPanelsAdded(totalPanelsAdded)
     setHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
     setRectangles(newRectangles);
@@ -497,17 +535,19 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
           rectangles: newRectangles,
           points: points,
           sideLengths: sideLengths,
-          totalPanelsAdded : totalPanelsAdded+1,
-          rotationAngles : rotationAngles,
-          transformerAttrs : transformerAttrs
+          totalPanelsAdded: (totalPanelsAdded+1),
+          rotationAngles: rotationAngles,
+          selectedPanel: selectedPanel,
+          transformerAttrs: transformerAttrs,
         },
       ];
+      setSelectedPanel(selectedPanel)
       setHistory(newHistory);
       setHistoryIndex(newHistory.length - 1);
       setRectanglePlacementMode(false);
       setNewRectanglePosition(null);
       setRectangles(newRectangles);
-      setTotalPanelsAdded(totalPanelsAdded+1)
+      setTotalPanelsAdded(totalPanelsAdded+1);
     }
   };
 
@@ -527,15 +567,17 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
           points: points,
           sideLengths: sideLengths,
           rotationAngles: newRotationAngles,
-          totalPanelsAdded: totalPanelsAdded -1
+          selectedPanel : selectedPanel,
+          totalPanelsAdded: (totalPanelsAdded-1),
         },
       ];
+      setSelectedPanel(selectedPanel)
       setHistory(newHistory);
       setHistoryIndex(newHistory.length - 1);
       setRectangles(newRectangles);
       setRotationAngles(newRotationAngles);
       setSelectedRectIndex(null);
-      setTotalPanelsAdded(totalPanelsAdded-1)
+      setTotalPanelsAdded(totalPanelsAdded-1);
     }
   };
 
@@ -556,9 +598,11 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
         points: points,
         sideLengths: sideLengths,
         rotationAngles: [...rotationAngles],
-        totalPanelsAdded: totalPanelsAdded, 
+        totalPanelsAdded: totalPanelsAdded,
+        selectedPanel : selectedPanel
       },
     ];
+    setSelectedPanel(selectedPanel)
     setHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
     setRectangles(updatedRectangles);
@@ -579,7 +623,7 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
       window.removeEventListener("keydown", keyPressHandler);
     };
   });
-  
+
   const handleRefresh = () => {
     setPoints([]);
     setPolygons([]);
@@ -642,6 +686,11 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
     totalPanelsAdded,
     handleRefresh,
     setTotalPanelsAdded,
+    selectedPanel,
+    setSelectedPanel,
+    handleSelectPanel: function (): void {
+      throw new Error("Function not implemented.");
+    }
   };
 
   return (

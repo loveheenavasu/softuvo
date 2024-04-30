@@ -87,9 +87,10 @@ const SideBar: React.FC<Props> = ({ getAllPanel }) => {
     rectanglePlacementMode,
     totalPanelsAdded,
     handleRefresh,
+    handleSelectPanel,
+    selectedPanel,
+    setSelectedPanel,
   } = useImageContext();
-
-  const [selectedPanel, setSelectedPanel] = useState<Panel | null>(null);
 
   let panelWattage = selectedPanel ? selectedPanel?.powerWattage / 1000 : 0;
   let panelEfficiency = selectedPanel?.panelEfficiency || 0;
@@ -105,15 +106,15 @@ const SideBar: React.FC<Props> = ({ getAllPanel }) => {
     const selectedItem = getAllPanel?.panels?.find(
       (ele: Panel) => ele.modelName === extractedValue
     );
-    setSelectedPanel(selectedItem || null);
     if (selectedItem) {
+      setSelectedPanel(selectedItem);
       addPanelAndFinishPolygon(selectedItem);
     }
   };
 
   const handleConfirmPlacement = () => {
-    if(selectedPanel){
-    handleConfirmRectanglePlacement(selectedPanel);
+    if (selectedPanel) {
+      handleConfirmRectanglePlacement(selectedPanel);
     }
   };
 
@@ -191,7 +192,12 @@ const SideBar: React.FC<Props> = ({ getAllPanel }) => {
               id="demo-simple-select-label"
               className="text-white border-none"
               sx={{
-                "MuiSelect-outlined": { color: "white" },
+                "&&": {
+                  color: "white",
+                  "&.Mui-focused": {
+                    color: "white",
+                  },
+                },
               }}
             >
               Select Panel

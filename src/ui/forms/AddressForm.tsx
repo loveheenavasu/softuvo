@@ -142,10 +142,10 @@ export default function AddressForm() {
         const response = await getGeoCode(formData);
         const latitude = response?.results[0]?.geometry?.location.lat;
         const longitude = response?.results[0]?.geometry.location.lng;
-  
+
         if (latitude !== undefined && longitude !== undefined) {
           const solarResponse = await getSolarLayerData(latitude, longitude);
-  
+
           if (typeof solarResponse === "string") {
             const geotiff = await getGeoTiff(
               solarResponse,
@@ -167,7 +167,6 @@ export default function AddressForm() {
       setIsSubmitting(false);
     }
   };
-  
 
   return (
     <>
@@ -195,9 +194,8 @@ export default function AddressForm() {
           }}
           onInputChange={(event, newInputValue) => {
             setInputValue(newInputValue);
-            if(newInputValue){
-              handleSubmit(onSubmit)(); 
-              handleRefresh()
+            if (newInputValue) {
+              handleSubmit(onSubmit)();
             }
           }}
           renderInput={(params) => (
@@ -217,6 +215,14 @@ export default function AddressForm() {
                 },
                 ".MuiSvgIcon-root ": {
                   fill: "white !important",
+                },
+              }}
+              InputLabelProps={{
+                sx: {
+                  color: "white",
+                  "&.Mui-focused": {
+                    color: "white",
+                  },
                 },
               }}
               name="address"
