@@ -209,7 +209,7 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
       setPoints(previousState.points);
       setSideLengths(previousState.sideLengths);
       setRotationAngles(previousState.rotationAngles);
-      setTotalPanelsAdded(previousState.totalPanelsAdded)
+      setTotalPanelsAdded(previousState.totalPanelsAdded || 0)
       setTransformerAttrs(previousState.transformerAttrs); // Set transformer attributes
       setHistoryIndex(historyIndex - 1);
     } else {
@@ -227,7 +227,7 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
       setPoints(nextState.points);
       setSideLengths(nextState.sideLengths);
       setRotationAngles(nextState.rotationAngles);
-      setTotalPanelsAdded(nextState.totalPanelsAdded)
+      setTotalPanelsAdded(nextState.totalPanelsAdded || 0)
       setTransformerAttrs(nextState.transformerAttrs); // Set transformer attributes
 
       setHistoryIndex(historyIndex + 1);

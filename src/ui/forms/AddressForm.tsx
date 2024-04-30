@@ -133,29 +133,33 @@ export default function AddressForm() {
     };
   }, [value, inputValue, fetch]);
 
-  const onSubmit: SubmitHandler<Inputs> = async (data) => {
+  const onSubmit: SubmitHandler<Inputs> = async () => {
     setIsSubmitting(true);
     try {
-      const formData = new FormData();
-      formData.append("address", data.address);
-      const response = await getGeoCode(formData);
-      const latitude = response?.results[0]?.geometry?.location.lat;
-      const longitude = response?.results[0]?.geometry.location.lng;
-
-      if (latitude !== undefined && longitude !== undefined) {
-        const solarResponse = await getSolarLayerData(latitude, longitude);
-
-        if (typeof solarResponse === "string") {
-          const geotiff = await getGeoTiff(
-            solarResponse,
-            process.env.GOOGLE_MAPS_API_KEY || ""
-          );
-          setServerResponse(geotiff);
+      if (value) {
+        const formData = new FormData();
+        formData.append("address", value.description);
+        const response = await getGeoCode(formData);
+        const latitude = response?.results[0]?.geometry?.location.lat;
+        const longitude = response?.results[0]?.geometry.location.lng;
+  
+        if (latitude !== undefined && longitude !== undefined) {
+          const solarResponse = await getSolarLayerData(latitude, longitude);
+  
+          if (typeof solarResponse === "string") {
+            const geotiff = await getGeoTiff(
+              solarResponse,
+              process.env.GOOGLE_MAPS_API_KEY || ""
+            );
+            setServerResponse(geotiff);
+          } else {
+            console.error("Solar response is not a string:", solarResponse);
+          }
         } else {
-          console.error("Solar response is not a string:", solarResponse);
+          console.error("Latitude or longitude is undefined");
         }
       } else {
-        console.error("Latitude or longitude is undefined");
+        console.error("No location selected");
       }
     } catch (error) {
       console.error("Error:", error);
@@ -163,6 +167,7 @@ export default function AddressForm() {
       setIsSubmitting(false);
     }
   };
+  
 
   return (
     <>
@@ -187,17 +192,13 @@ export default function AddressForm() {
           onChange={(event: any, newValue: PlaceType | null) => {
             setOptions(newValue ? [newValue, ...options] : options);
             setValue(newValue);
-            if (newValue) {
-              setIsSubmitting(true);
-              handleSubmit(onSubmit)();
-              handleRefresh();
-            } else {
-              console.log("No location selected. Resetting loader.");
-              setIsSubmitting(false);
-            }
           }}
           onInputChange={(event, newInputValue) => {
             setInputValue(newInputValue);
+            if(newInputValue){
+              handleSubmit(onSubmit)(); 
+              handleRefresh()
+            }
           }}
           renderInput={(params) => (
             <TextField
