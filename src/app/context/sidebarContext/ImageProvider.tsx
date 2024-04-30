@@ -321,6 +321,8 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
     return { x: centroidX, y: centroidY };
   };
 
+
+
   const addPanelAndFinishPolygon = (selectedPanel: Panel | null) => {
     if (selectedPanel) {
       const panelWidthInches = selectedPanel?.dimension?.width;
@@ -347,7 +349,7 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
         const panelWidthWithGap = panelWidth + 10;
         const panelLengthWithGap = panelLength + 10;
 
-        // Calculate the required number of panels for this polygon
+        // Calculate the required number of panels
         const numPanelsLength = Math.floor(
           (polygonArea - 5 * panelWidthWithGap) / panelLengthWithGap
         );
@@ -355,21 +357,17 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
           (polygonArea - 5 * panelLengthWithGap) / panelWidthWithGap
         );
         const numPanels = numPanelsLength * numPanelsWidth;
-
         // Calculate the centroid of the polygon
         const centroid = calculateCentroid(polygonPoints);
-
-        // Initialize variables for panel placement and counting total panels added
+        // Initialize variables for panel placement
         let panelX = centroid.x - (numPanelsLength * panelLengthWithGap) / 2;
         let panelY = centroid.y - (numPanelsWidth * panelWidthWithGap) / 2;
-        let numPanelsAdded = 0;
-
         // Remove existing panels from the same polygon
         newRectangles = newRectangles.filter(
           (rect) => !isRectangleInsidePolygon(rect, polygonPoints)
         );
-
-        // Iterate over all possible panel positions
+        // Count the number of panels added
+        let numPanelsAdded = 0;
         for (let i = 0; i < numPanels; i++) {
           if (
             panelX + panelLengthWithGap >
@@ -402,9 +400,7 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
           }
           panelX += panelLengthWithGap;
         }
-
-        // Update total panels added for this polygon
-        TotalPanelsAdded((prevTotal: number) => prevTotal + numPanelsAdded);
+        TotalPanelsAdded(numPanelsAdded);
 
         // Update history with the new state
         const newHistory = [
@@ -415,7 +411,7 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
             points: newPoints,
             sideLengths: [...sideLengths, newSideLengths],
             rotationAngles: rotationAngles,
-            totalPanelsAdded: numPanelsAdded, // Update total panels added for this polygon
+            totalPanelsAdded: numPanelsAdded,
             selectedPanel: selectedPanel,
             transformerAttrs: transformerAttrs, // Include transformer attributes in history
           },
@@ -427,9 +423,11 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
         setHistory(newHistory);
         setHistoryIndex(newHistory.length - 1);
         setRectangles(newRectangles);
+        setTotalPanelsAdded(numPanelsAdded);
       }
     }
   };
+
 
   const getSideLengths = (points: string | any[]) => {
     const sideLengths = [];
