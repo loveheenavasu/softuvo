@@ -99,10 +99,8 @@ const SideBar: React.FC<Props> = ({ getAllPanel }) => {
     handleDrawPolygon,
     polygons,
     history,
-    setPolygons
+    setPolygons,
   } = useImageContext();
-
-  console.log(totalPanelsAdded, 'totalPanelsAdded')
 
   let panelWattage = selectedPanel ? selectedPanel?.powerWattage / 1000 : 0;
   let panelEfficiency = selectedPanel?.panelEfficiency || 0;
@@ -113,26 +111,24 @@ const SideBar: React.FC<Props> = ({ getAllPanel }) => {
   const totalannualproduction = annualproduction * totalPanelsAdded;
   const systemSize = panelWattage * totalPanelsAdded;
 
-  const handlePanelSelect = (elementName:string) => {
+  const handlePanelSelect = (elementName: string) => {
     const selectedItem = getAllPanel?.panels?.find(
       (ele: Panel) => ele.modelName === elementName
     );
 
-    console.log(elementName, 'extractedValue', selectedItem)
     if (selectedItem) {
-      const updatedPolygons = polygons.map(polygon => {
+      const updatedPolygons = polygons.map((polygon) => {
         // Update the selected panel for each polygon
         return {
           ...polygon,
           selectedPanel: selectedItem,
         };
       });
-      setSelectedPanel(selectedItem)
+      setSelectedPanel(selectedItem);
       setPolygons(updatedPolygons);
       addPanelAndFinishPolygon(selectedItem);
     }
   };
-  
 
   const handleConfirmPlacement = () => {
     if (selectedPanel) {
@@ -146,12 +142,7 @@ const SideBar: React.FC<Props> = ({ getAllPanel }) => {
   };
 
   const isMenuDisabled = (name: string) => {
-    const firstPanelWithType = history.find(
-      (ele) => !!ele?.selectedPanel
-    );
-
-    console.log(firstPanelWithType,history, 'firstPanelWithTypefirstPanelWithType')
-
+    const firstPanelWithType = history.find((ele) => !!ele?.selectedPanel);
     if (firstPanelWithType) {
       return !firstPanelWithType.selectedPanel.modelName.includes(name);
     }
@@ -277,16 +268,20 @@ const SideBar: React.FC<Props> = ({ getAllPanel }) => {
               className="text-white bg-black"
               labelId="demo-simple-select-label"
               id="demo-simple-select"
-            
-              value={selectedPanel ? selectedPanel.modelName : ''}
+              value={selectedPanel ? selectedPanel.modelName : ""}
               label="Add Panels"
-              
+
               // onChange={handlePanelSelect}
             >
               {getAllPanel?.panels?.map(
                 (panel, index: React.Key | null | undefined) => {
                   return (
-                    <MenuItem onClick={ () => handlePanelSelect(panel?.modelName)}  disabled={isMenuDisabled(panel?.modelName)}  key={index} value={panel?.modelName}>
+                    <MenuItem
+                      onClick={() => handlePanelSelect(panel?.modelName)}
+                      disabled={isMenuDisabled(panel?.modelName)}
+                      key={index}
+                      value={panel?.modelName}
+                    >
                       {panel?.modelName}
                     </MenuItem>
                   );

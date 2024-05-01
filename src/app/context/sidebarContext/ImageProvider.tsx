@@ -151,7 +151,6 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
   const [drawingMode, setDrawingMode] = useState<boolean>(false); // State variable to track drawing mode
 
   const TotalPanelsAdded = (count: number) => {
-    console.log("count", count);
     setTotalPanelsAdded(prevValue => prevValue + count);
 
     const newHistory = [
