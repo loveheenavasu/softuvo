@@ -677,6 +677,7 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
     setTotalPanelsAdded(0);
     setPanelLength(0);
     setPanelWidth(0);
+    setSelectedPanel(null);
   };
 
   const value: ImageContextProps = {

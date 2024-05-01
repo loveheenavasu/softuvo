@@ -152,8 +152,6 @@ export default function AddressForm() {
               process.env.GOOGLE_MAPS_API_KEY || ""
             );
             setServerResponse(geotiff);
-            handleRefresh();
-
           } else {
             console.error("Solar response is not a string:", solarResponse);
           }
@@ -193,6 +191,9 @@ export default function AddressForm() {
           onChange={(event: any, newValue: PlaceType | null) => {
             setOptions(newValue ? [newValue, ...options] : options);
             setValue(newValue);
+            if (newValue) {
+              handleRefresh();
+            }
           }}
           onInputChange={(event, newInputValue) => {
             setInputValue(newInputValue);
