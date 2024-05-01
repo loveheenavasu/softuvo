@@ -159,7 +159,6 @@ export default function AddressForm() {
           console.error("Latitude or longitude is undefined");
         }
       } else {
-        console.error("No location selected");
       }
     } catch (error) {
       console.error("Error:", error);
@@ -275,7 +274,7 @@ export default function AddressForm() {
           }}
         />
       </form>
-      <div className="m-auto mt-5">
+      <div className="m-auto">
         <CustomImage serverResponse={serverResponse} loader={isSubmitting} />
       </div>
     </>

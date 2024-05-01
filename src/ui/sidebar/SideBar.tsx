@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import styles from "./Sidebar.module.css";
 import { Button } from "@mui/material";
 import { styled } from "@mui/material/styles";
@@ -21,6 +21,8 @@ import { useImageContext } from "@/app/context/sidebarContext/ImageProvider";
 import { Panel } from "@/app/actions/getAllPanels";
 import PolylineIcon from "@mui/icons-material/Polyline";
 import { Cancel } from "@mui/icons-material";
+import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
 
 interface Props {
   getAllPanel: {
@@ -132,26 +134,44 @@ const SideBar: React.FC<Props> = ({ getAllPanel }) => {
     <div className={styles.sidebar}>
       <div className="flex justify-between bg-black p-2">
         <div onClick={handleDrawPolygon}>
-          {drawingMode ? <Cancel /> : <PolylineIcon />}
+          {drawingMode ? (
+            <Tooltip title="cancel">
+              <Cancel />
+            </Tooltip>
+          ) : (
+            <Tooltip title="Draw Polygon">
+              <PolylineIcon />
+            </Tooltip>
+          )}
         </div>
         <div onClick={handleUndo}>
-          <UndoIcon fontSize="medium" />
+          <Tooltip title="Undo">
+            <UndoIcon fontSize="medium" />
+          </Tooltip>
         </div>
         <div onClick={handleRedo}>
-          <RedoIcon fontSize="medium" />
+          <Tooltip title="Redo">
+            <RedoIcon fontSize="medium" />
+          </Tooltip>
         </div>
         {rectanglePlacementMode ? (
           <div onClick={handleConfirmPlacement}>
-            <CheckIcon fontSize="medium" />
+            <Tooltip title="Confirm Position">
+              <CheckIcon fontSize="medium" />
+            </Tooltip>
           </div>
         ) : (
           <div onClick={handleAddRectangle}>
-            <AddIcon fontSize="medium" />
+            <Tooltip title="Add Panel">
+              <AddIcon fontSize="medium" />
+            </Tooltip>
           </div>
         )}
 
         <div onClick={handleRemoveRectangle}>
-          <DeleteIcon fontSize="medium" />
+          <Tooltip title="Delete">
+            <DeleteIcon fontSize="medium" />
+          </Tooltip>
         </div>
       </div>
       <div className="w-[300px] bg-black py-4 mt-3">
