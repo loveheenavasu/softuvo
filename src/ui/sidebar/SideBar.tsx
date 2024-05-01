@@ -102,7 +102,7 @@ const SideBar: React.FC<Props> = ({ getAllPanel }) => {
     setPolygons
   } = useImageContext();
 
-  console.log(polygons, 'polygons')
+  console.log(totalPanelsAdded, 'totalPanelsAdded')
 
   let panelWattage = selectedPanel ? selectedPanel?.powerWattage / 1000 : 0;
   let panelEfficiency = selectedPanel?.panelEfficiency || 0;
