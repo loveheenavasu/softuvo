@@ -149,9 +149,9 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
   const [transformerAttrs, setTransformerAttrs] = useState(null);
   const [selectedPanel, setSelectedPanel] = useState<Panel | null>(null);
   const [drawingMode, setDrawingMode] = useState<boolean>(false); // State variable to track drawing mode
-
+console.log('history',history)
   const TotalPanelsAdded = (count: number) => {
-    setTotalPanelsAdded(prevValue => prevValue + count);
+    const newTotalPanels = totalPanelsAdded + count;
 
     const newHistory = [
       ...history.slice(0, historyIndex + 1),
@@ -162,10 +162,10 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
         sideLengths: sideLengths,
         rotationAngles: rotationAngles,
         transformerAttrs: transformerAttrs,
-        totalPanelsAdded: totalPanelsAdded,
+        totalPanelsAdded: newTotalPanels,
       },
     ];
-    // setTotalPanelsAdded(totalPanelsAdded);
+    setTotalPanelsAdded(prevValue => prevValue + count);
     setHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
   };
@@ -188,6 +188,8 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
       setHistoryIndex(historyIndex + 1);
     }
   };
+
+  console.log(totalPanelsAdded, 'totalPanelsAddedtotalPanelsAdded')
 
   const handleStageClick = () => {
     const stage = stageRef.current;
@@ -240,6 +242,7 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
             points: newPoints,
             sideLengths: sideLengths,
             rotationAngles: rotationAngles,
+            totalPanelsAdded:totalPanelsAdded,
             transformerAttrs: transformerAttrs, // Include transformer attributes in history
           },
         ];
@@ -264,18 +267,10 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
       setPoints(previousState.points);
       setSideLengths(previousState.sideLengths);
       setRotationAngles(previousState.rotationAngles);
-      // setTotalPanelsAdded(previousState.totalPanelsAdded || 0);
+      setTotalPanelsAdded(previousState.totalPanelsAdded || 0);
       setSelectedPanel(previousState.selectedPanel);
       setTransformerAttrs(previousState.transformerAttrs);
       setHistoryIndex(historyIndex - 1);
-      let totalPanelsCount = 0;
-      history.forEach((state, index) => {
-        if (index <= historyIndex - 1) {
-          totalPanelsCount += state.totalPanelsAdded || 0;
-        }
-      });
-      setTotalPanelsAdded(totalPanelsCount);
-  
     } else {
       // If the last action was adding a point, remove the last point
       const newPoints = points.slice(0, -1);
@@ -291,18 +286,11 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
       setPoints(nextState.points);
       setSideLengths(nextState.sideLengths);
       setRotationAngles(nextState.rotationAngles);
-      // setTotalPanelsAdded(nextState.totalPanelsAdded || 0);
+      setTotalPanelsAdded(nextState.totalPanelsAdded || 0);
       setSelectedPanel(nextState.selectedPanel);
       setTransformerAttrs(nextState.transformerAttrs);
       setHistoryIndex(historyIndex + 1);
-      let totalPanelsCount = 0;
-      history.forEach((state, index) => {
-        if (index <= historyIndex + 1) {
-          totalPanelsCount += state.totalPanelsAdded || 0;
-        }
-      });
-      setTotalPanelsAdded(totalPanelsCount);
-  
+      
     }
   };
 
@@ -418,7 +406,7 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
             points: newPoints,
             sideLengths: [...sideLengths, newSideLengths],
             rotationAngles: rotationAngles,
-            totalPanelsAdded: numPanelsAdded, // Update total panels added for this polygon
+            totalPanelsAdded: totalPanelsAdded + numPanelsAdded, // Update total panels added for this polygon
             selectedPanel: selectedPanel,
             transformerAttrs: transformerAttrs, // Include transformer attributes in history
           },
