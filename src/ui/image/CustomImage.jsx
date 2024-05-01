@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import { Stage, Layer, Image, Rect, Transformer, Line } from "react-konva";
-import { Button, CircularProgress } from "@mui/material";
+import {  CircularProgress } from "@mui/material";
 import { useImageContext } from "@/app/context/sidebarContext/ImageProvider";
 
 const CustomImage = ({ serverResponse, loader }) => {
@@ -115,7 +115,7 @@ const CustomImage = ({ serverResponse, loader }) => {
             >
               <Layer ref={panelLayerRef}>
                 {image && (
-                  <Image image={image} alt="image" width={1440} height={700} />
+                  <Image image={image} alt="image" width={1440} height={724} />
                 )}
                 {rectangles.map((rect, index) => (
                   <Rect

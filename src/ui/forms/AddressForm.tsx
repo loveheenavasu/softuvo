@@ -159,6 +159,7 @@ export default function AddressForm() {
           console.error("Latitude or longitude is undefined");
         }
       } else {
+        console.log('no location is selected')
       }
     } catch (error) {
       console.error("Error:", error);
@@ -168,11 +169,8 @@ export default function AddressForm() {
   };
 
   return (
-    <>
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="absolute top-5 right-6  z-20"
-      >
+    < >
+      <form onSubmit={handleSubmit(onSubmit)} className="absolute top-9 right-12  z-20">
         <Autocomplete
           key={value?.description}
           id="google-map-demo"

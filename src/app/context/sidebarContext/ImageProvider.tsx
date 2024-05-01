@@ -150,21 +150,7 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
   const [selectedPanel, setSelectedPanel] = useState<Panel | null>(null);
   const [drawingMode, setDrawingMode] = useState<boolean>(false); // State variable to track drawing mode
 
-  const handleSelectPanel = (panel: Panel | null) => {
-    if (panel) {
-      const newHistory = [
-        ...history.slice(0, historyIndex + 1),
-        {
-          selectedPanel: panel.modelName,
-          totalPanelsAdded: totalPanelsAdded,
-        },
-      ];
-      setSelectedPanel(selectedPanel);
-      setHistory(newHistory);
-      setHistoryIndex(newHistory.length - 1);
-    }
-    setSelectedPanel(panel);
-  };
+console.log('history',history)
 
   const TotalPanelsAdded = (count: number) => {
     console.log("count", count);
@@ -324,6 +310,8 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
 
 
   const addPanelAndFinishPolygon = (selectedPanel: Panel | null) => {
+
+    console.log(selectedPanel, 'selectedPanelselectedPanel')
     if (selectedPanel) {
       const panelWidthInches = selectedPanel?.dimension?.width;
       const panelLengthInches = selectedPanel?.dimension?.length;
@@ -335,7 +323,11 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
       setPanelLength(panelLength);
       setPanelWidth(panelWidth);
 
+      console.log(points, 'pointspointspointspoints', 'outside')
+
       if (points.length >= 3 || polygons.length > 0) {
+
+        console.log(points, 'pointspointspointspoints', 'inside')
         const newPolygons =
           points.length >= 3 ? polygons.concat([points]) : polygons;
         const newSideLengths = points.length >= 3 ? getSideLengths(points) : [];
@@ -416,6 +408,7 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
             transformerAttrs: transformerAttrs, // Include transformer attributes in history
           },
         ];
+        console.log(newRectangles, 'newRectanglesnewRectanglesnewRectangles')
         setSelectedPanel(selectedPanel);
         setPoints(newPoints);
         setPolygons(newPolygons);
@@ -424,6 +417,7 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
         setHistoryIndex(newHistory.length - 1);
         setRectangles(newRectangles);
         setTotalPanelsAdded(numPanelsAdded);
+        
       }
     }
   };
@@ -677,7 +671,6 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
     setTotalPanelsAdded(0);
     setPanelLength(0);
     setPanelWidth(0);
-    setSelectedPanel(null);
   };
 
   const value: ImageContextProps = {
