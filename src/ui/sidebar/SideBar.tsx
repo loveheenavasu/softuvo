@@ -99,6 +99,7 @@ const SideBar: React.FC<Props> = ({ getAllPanel }) => {
     handleDrawPolygon,
     polygons,
     history,
+    historyIndex,
     setPolygons,
   } = useImageContext();
 
@@ -110,22 +111,26 @@ const SideBar: React.FC<Props> = ({ getAllPanel }) => {
 
   const totalannualproduction = annualproduction * totalPanelsAdded;
   const systemSize = panelWattage * totalPanelsAdded;
+console.log(selectedPanel, 'sdsfgh')
 
+
+console.log(history,historyIndex, 'historyhistoryhistoryhistory')
   const handlePanelSelect = (elementName: string) => {
+
+    const hasPrevSelectedPanel = history?.[history.length -1]?.didAddedPanels
+
+    console.log(hasPrevSelectedPanel, 'hasPrevSelectedPanelhasPrevSelectedPanelhasPrevSelectedPanel')
+
+    if(hasPrevSelectedPanel){
+      return 
+    }
+
+    
     const selectedItem = getAllPanel?.panels?.find(
       (ele: Panel) => ele.modelName === elementName
     );
-
     if (selectedItem) {
-      const updatedPolygons = polygons.map((polygon) => {
-        // Update the selected panel for each polygon
-        return {
-          ...polygon,
-          selectedPanel: selectedItem,
-        };
-      });
       setSelectedPanel(selectedItem);
-      setPolygons(updatedPolygons);
       addPanelAndFinishPolygon(selectedItem);
     }
   };

@@ -243,6 +243,7 @@ console.log('history',history)
             sideLengths: sideLengths,
             rotationAngles: rotationAngles,
             totalPanelsAdded:totalPanelsAdded,
+            selectedPanel : selectedPanel,
             transformerAttrs: transformerAttrs, // Include transformer attributes in history
           },
         ];
@@ -409,6 +410,7 @@ console.log('history',history)
             totalPanelsAdded: totalPanelsAdded + numPanelsAdded, // Update total panels added for this polygon
             selectedPanel: selectedPanel,
             transformerAttrs: transformerAttrs, // Include transformer attributes in history
+            didAddedPanels:true
           },
         ];
         // setTotalPanelsAdded(numPanelsAdded);
