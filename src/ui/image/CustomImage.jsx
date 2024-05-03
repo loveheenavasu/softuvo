@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import { Stage, Layer, Image, Rect, Transformer, Line } from "react-konva";
-import {  CircularProgress } from "@mui/material";
+import { CircularProgress } from "@mui/material";
 import { useImageContext } from "@/app/context/sidebarContext/ImageProvider";
 
 const CustomImage = ({ serverResponse, loader }) => {
@@ -26,8 +26,6 @@ const CustomImage = ({ serverResponse, loader }) => {
   } = useImageContext();
 
   const [imageElement, setImageElement] = useState(null);
-  const [image, setImage] = useState(null);
-
   const [stageDimensions, setStageDimensions] = useState({
     width: 0,
     height: 0,
@@ -62,13 +60,6 @@ const CustomImage = ({ serverResponse, loader }) => {
     }
   }, [serverResponse]);
 
-  // Set the image when imageElement changes
-  useEffect(() => {
-    if (imageElement) {
-      setImage(imageElement);
-    }
-  }, [imageElement]);
-
   useEffect(() => {
     const handleResize = () => {
       setStageDimensions({
@@ -86,36 +77,32 @@ const CustomImage = ({ serverResponse, loader }) => {
     };
   }, []);
 
-  React.useEffect(() => {
-    if (selectedRectIndex !== null && transformerRef.current && shapeRef.current) {
-      transformerRef.current.nodes([shapeRef.current]);
-      const layer = transformerRef.current.getLayer();
+  useEffect(() => {
+    if (selectedRectIndex !== null && transformerRef?.current && shapeRef?.current) {
+      transformerRef?.current?.nodes([shapeRef?.current]);
+      const layer = transformerRef?.current?.getLayer();
       if (layer) {
-        layer.batchDraw();
+        layer?.batchDraw();
       }
     }
   }, [selectedRectIndex, rectangles, shapeRef, transformerRef]);
-  
-  
+
   return (
-    <>
+    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
       {loader ? (
-        <div className="flex items-center justify-center absolute top-52 left-0 right-0">
-          <CircularProgress />
-        </div>
+        <CircularProgress />
       ) : (
         <>
           {imageShown && (
             <Stage
-              className="flex items-center justify-center"
               width={stageDimensions.width}
               height={stageDimensions.height}
               onClick={handleStageClick}
               ref={stageRef}
             >
               <Layer ref={panelLayerRef}>
-                {image && (
-                  <Image image={image} alt="image" width={1440} height={724} />
+                {imageElement && (
+                  <Image image={imageElement} alt="image" width={1440} height={724} />
                 )}
                 {rectangles.map((rect, index) => (
                   <Rect
@@ -147,7 +134,7 @@ const CustomImage = ({ serverResponse, loader }) => {
                       return newBox;
                     }}
                     rotateEnabled
-                    resizeEnabled = {false}
+                    resizeEnabled={false}
                     onTransform={(newAttrs) =>
                       handleTransform(selectedRectIndex, newAttrs)
                     }
@@ -176,8 +163,9 @@ const CustomImage = ({ serverResponse, loader }) => {
           )}
         </>
       )}
-    </>
+    </div>
   );
 };
 
 export default CustomImage;
+

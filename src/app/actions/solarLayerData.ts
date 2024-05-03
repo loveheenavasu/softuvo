@@ -18,9 +18,9 @@ export async function getSolarLayerData(
           "location.latitude": latitude.toFixed(5),
           "location.longitude": longitude.toFixed(5),
           radius_meters: "30",
-          // required_quality: "HIGH",
           pixelSizeMeters : "0.1",
           required_quality: "LOW",
+          view: 'FULL_LAYERS',
           key: process.env.GOOGLE_MAPS_API_KEY,
         },
       }

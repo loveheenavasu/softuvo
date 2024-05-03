@@ -1,4 +1,5 @@
 "use client";
+import { exportImage } from "@/app/actions/exportImage";
 import { Panel } from "@/app/actions/getAllPanels";
 import Konva from "konva";
 
@@ -8,7 +9,6 @@ import React, {
   useContext,
   useRef,
   ReactNode,
-  MouseEvent,
 } from "react";
 
 interface ImageContextProps {
@@ -38,6 +38,7 @@ interface ImageContextProps {
       }[]
     >
   >;
+  
   selectedRectIndex: number | null;
   setSelectedRectIndex: React.Dispatch<React.SetStateAction<number | null>>;
   setTotalPanelsAdded: React.Dispatch<React.SetStateAction<number>>;
@@ -84,6 +85,7 @@ interface ImageContextProps {
   drawingMode: boolean;
   setDrawingMode: React.Dispatch<React.SetStateAction<boolean>>;
   handleDrawPolygon: () => void;
+  handleExportImage: ()=> void;
 }
 
 interface TransformAttributes {
@@ -149,7 +151,7 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
   const [transformerAttrs, setTransformerAttrs] = useState(null);
   const [selectedPanel, setSelectedPanel] = useState<Panel | null>(null);
   const [drawingMode, setDrawingMode] = useState<boolean>(false); // State variable to track drawing mode
-console.log('history',history)
+
   const TotalPanelsAdded = (count: number) => {
     const newTotalPanels = totalPanelsAdded + count;
 
@@ -165,7 +167,7 @@ console.log('history',history)
         totalPanelsAdded: newTotalPanels,
       },
     ];
-    setTotalPanelsAdded(prevValue => prevValue + count);
+    setTotalPanelsAdded((prevValue) => prevValue + count);
     setHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
   };
@@ -189,15 +191,13 @@ console.log('history',history)
     }
   };
 
-  console.log(totalPanelsAdded, 'totalPanelsAddedtotalPanelsAdded')
-
   const handleStageClick = () => {
     const stage = stageRef.current;
     const pointerPosition = stage.getPointerPosition();
-  
+
     // Get the bounding box of the image
     const imageBoundingBox = stageRef.current.findOne("Image").getClientRect();
-  
+
     if (
       pointerPosition.x >= imageBoundingBox.x &&
       pointerPosition.x <= imageBoundingBox.x + imageBoundingBox.width &&
@@ -210,10 +210,8 @@ console.log('history',history)
         polygons.some((polygon) =>
           isPointInsidePolygon(clickedPoint, polygon)
         ) ||
-        rectangles.some((rect) =>
-          isPointInsideRectangle(clickedPoint, rect)
-        );
-  
+        rectangles.some((rect) => isPointInsideRectangle(clickedPoint, rect));
+
       if (rectanglePlacementMode) {
         // If in rectangle placement mode, set new rectangle position
         setNewRectanglePosition({
@@ -228,12 +226,9 @@ console.log('history',history)
         setSelectedRectIndex(rectIndex);
       } else if (drawingMode) {
         // If in drawing mode and not inside any polygon or rectangle, add new point
-        const newPoints = points.concat([
-          pointerPosition.x,
-          pointerPosition.y,
-        ]);
+        const newPoints = points.concat([pointerPosition.x, pointerPosition.y]);
         setPoints(newPoints);
-  
+
         const newHistory = [
           ...history.slice(0, historyIndex + 1),
           {
@@ -242,8 +237,8 @@ console.log('history',history)
             points: newPoints,
             sideLengths: sideLengths,
             rotationAngles: rotationAngles,
-            totalPanelsAdded:totalPanelsAdded,
-            selectedPanel : selectedPanel,
+            totalPanelsAdded: totalPanelsAdded,
+            selectedPanel: selectedPanel,
             transformerAttrs: transformerAttrs, // Include transformer attributes in history
           },
         ];
@@ -258,7 +253,6 @@ console.log('history',history)
       setSelectedRectIndex(null);
     }
   };
-  
 
   const handleUndo = () => {
     if (historyIndex > 0) {
@@ -291,7 +285,6 @@ console.log('history',history)
       setSelectedPanel(nextState.selectedPanel);
       setTransformerAttrs(nextState.transformerAttrs);
       setHistoryIndex(historyIndex + 1);
-      
     }
   };
 
@@ -314,115 +307,118 @@ console.log('history',history)
   };
 
   const addPanelAndFinishPolygon = (selectedPanel: Panel | null) => {
-    if (selectedPanel) {
-      const panelWidthInches = selectedPanel?.dimension?.width;
-      const panelLengthInches = selectedPanel?.dimension?.length;
-      const meterPerInch = 0.0254;
-      const pixelPerMeter = 10;
+    if (!selectedPanel) return;
 
-      const panelLength = panelLengthInches * meterPerInch * pixelPerMeter;
-      const panelWidth = panelWidthInches * meterPerInch * pixelPerMeter;
-      setPanelLength(panelLength);
-      setPanelWidth(panelWidth);
+    const panelWidthInches = selectedPanel?.dimension?.width;
+    const panelLengthInches = selectedPanel?.dimension?.length;
+    const meterPerInch = 0.0254;
+    const pixelPerMeter = 10;
 
-      if (points.length >= 3 || polygons.length > 0) {
-        const newPolygons =
-          points.length >= 3 ? polygons.concat([points]) : polygons;
-        const newSideLengths = points.length >= 3 ? getSideLengths(points) : [];
-        let newRectangles = [...rectangles]; // Copy existing rectangles
-        const newPoints = points.length >= 3 ? [] : points;
-        const polygonPoints =
-          points.length >= 3 ? points : polygons[polygons.length - 1];
-        const polygonArea = shoelaceFormula(polygonPoints);
+    const panelLength = panelLengthInches * meterPerInch * pixelPerMeter;
+    const panelWidth = panelWidthInches * meterPerInch * pixelPerMeter;
+    setPanelLength(panelLength);
+    setPanelWidth(panelWidth);
 
-        // Adjusting panel width and height to include the 1-inch gap
-        const panelWidthWithGap = panelWidth + 10;
-        const panelLengthWithGap = panelLength + 10;
+    const isPolygonCompleted = points.length >= 3 || polygons.length > 0;
+    if (!isPolygonCompleted) return;
 
-        // Calculate the required number of panels for this polygon
-        const numPanelsLength = Math.floor(
-          (polygonArea - 5 * panelWidthWithGap) / panelLengthWithGap
-        );
-        const numPanelsWidth = Math.floor(
-          (polygonArea - 5 * panelLengthWithGap) / panelWidthWithGap
-        );
-        const numPanels = numPanelsLength * numPanelsWidth;
+    const isPolygonPoints = points.length >= 3;
+    const newPolygons = isPolygonPoints ? polygons.concat([points]) : polygons;
+    const newSideLengths = isPolygonPoints ? getSideLengths(points) : [];
+    const newRectangles = rectangles.filter(
+      (rect) =>
+        !isRectangleInsidePolygon(
+          rect,
+          isPolygonPoints ? points : polygons[polygons.length - 1]
+        )
+    );
 
-        // Calculate the centroid of the polygon
-        const centroid = calculateCentroid(polygonPoints);
+    const panelGap = 10;
+    const panelWidthWithGap = panelWidth + panelGap;
+    const panelLengthWithGap = panelLength + panelGap;
 
-        // Initialize variables for panel placement and counting total panels added
-        let panelX = centroid.x - (numPanelsLength * panelLengthWithGap) / 2;
-        let panelY = centroid.y - (numPanelsWidth * panelWidthWithGap) / 2;
-        let numPanelsAdded = 0;
+    const polygonArea = shoelaceFormula(
+      isPolygonPoints ? points : polygons[polygons.length - 1]
+    );
+    const numPanelsLength = Math.floor(
+      (polygonArea - 5 * panelWidthWithGap) / panelLengthWithGap
+    );
+    const numPanelsWidth = Math.floor(
+      (polygonArea - 5 * panelLengthWithGap) / panelWidthWithGap
+    );
+    const numPanels = numPanelsLength * numPanelsWidth;
 
-        // Remove existing panels from the same polygon
-        newRectangles = newRectangles.filter(
-          (rect) => !isRectangleInsidePolygon(rect, polygonPoints)
-        );
+    const centroid = calculateCentroid(
+      isPolygonPoints ? points : polygons[polygons.length - 1]
+    );
+    let panelX = centroid.x - (numPanelsLength * panelLengthWithGap) / 2;
+    let panelY = centroid.y - (numPanelsWidth * panelWidthWithGap) / 2;
+    let numPanelsAdded = 0;
 
-        // Iterate over all possible panel positions
-        for (let i = 0; i < numPanels; i++) {
-          if (
-            panelX + panelLengthWithGap >
-            centroid.x + (numPanelsLength * panelLengthWithGap) / 2
-          ) {
-            panelX = centroid.x - (numPanelsLength * panelLengthWithGap) / 2;
-            panelY += panelWidthWithGap;
-          }
-          // Check if the panel center is inside the polygon
-          const rectCenter = {
-            x: panelX + panelLengthWithGap / 2,
-            y: panelY + panelWidthWithGap / 2,
-          };
-          if (isPointInsidePolygon(rectCenter, polygonPoints)) {
-            // Calculate the angle between the current rectangle and the centroid
-            const angle = Math.atan2(centroid.y - panelY, centroid.x - panelX);
-
-            const rect = {
-              x: panelX,
-              y: panelY,
-              width: panelLength,
-              height: panelWidth,
-              rotation: angle, // Set rotation angle for the rectangle
-            };
-
-            if (isRectangleInsidePolygon(rect, polygonPoints)) {
-              newRectangles.push(rect); // Push the new rectangle to the array
-              numPanelsAdded++; // Increment the count of panels added
-            }
-          }
-          panelX += panelLengthWithGap;
-        }
-
-        // Update total panels added for this polygon
-        TotalPanelsAdded(numPanelsAdded);
-
-        // Update history with the new state
-        const newHistory = [
-          ...history.slice(0, historyIndex + 1),
-          {
-            polygons: newPolygons,
-            rectangles: newRectangles, // Set rectangles to the new rectangles array
-            points: newPoints,
-            sideLengths: [...sideLengths, newSideLengths],
-            rotationAngles: rotationAngles,
-            totalPanelsAdded: totalPanelsAdded + numPanelsAdded, // Update total panels added for this polygon
-            selectedPanel: selectedPanel,
-            transformerAttrs: transformerAttrs, // Include transformer attributes in history
-            didAddedPanels:true
-          },
-        ];
-        // setTotalPanelsAdded(numPanelsAdded);
-        setSelectedPanel(selectedPanel);
-        setPoints(newPoints);
-        setPolygons(newPolygons);
-        setSideLengths([...sideLengths, newSideLengths]);
-        setHistory(newHistory);
-        setHistoryIndex(newHistory.length - 1);
-        setRectangles(newRectangles);
+    for (let i = 0; i < numPanels; i++) {
+      if (
+        panelX + panelLengthWithGap >
+        centroid.x + (numPanelsLength * panelLengthWithGap) / 2
+      ) {
+        panelX = centroid.x - (numPanelsLength * panelLengthWithGap) / 2;
+        panelY += panelWidthWithGap;
       }
+
+      const rectCenter = {
+        x: panelX + panelLengthWithGap / 2,
+        y: panelY + panelWidthWithGap / 2,
+      };
+      if (
+        isPointInsidePolygon(
+          rectCenter,
+          isPolygonPoints ? points : polygons[polygons.length - 1]
+        )
+      ) {
+        const angle = Math.atan2(centroid.y - panelY, centroid.x - panelX);
+        const rect = {
+          x: panelX,
+          y: panelY,
+          width: panelLength,
+          height: panelWidth,
+          rotation: angle,
+        };
+        if (
+          isRectangleInsidePolygon(
+            rect,
+            isPolygonPoints ? points : polygons[polygons.length - 1]
+          )
+        ) {
+          newRectangles.push(rect);
+          numPanelsAdded++;
+        }
+      }
+      panelX += panelLengthWithGap;
     }
+
+    const newHistory = [
+      ...history.slice(0, historyIndex + 1),
+      {
+        polygons: newPolygons,
+        rectangles: newRectangles,
+        points: isPolygonPoints ? [] : points,
+        sideLengths: [...sideLengths, newSideLengths],
+        rotationAngles: rotationAngles,
+        totalPanelsAdded: totalPanelsAdded + numPanelsAdded,
+        selectedPanel: selectedPanel,
+        transformerAttrs: transformerAttrs,
+        didAddedPanels: true,
+      },
+    ];
+
+    TotalPanelsAdded(numPanelsAdded);
+
+    setSelectedPanel(selectedPanel);
+    setPoints(isPolygonPoints ? [] : points);
+    setPolygons(newPolygons);
+    setSideLengths([...sideLengths, newSideLengths]);
+    setHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
+    setRectangles(newRectangles);
   };
 
   const getSideLengths = (points: string | any[]) => {
@@ -488,7 +484,7 @@ console.log('history',history)
   const shoelaceFormula = (points: string | any[]) => {
     let area = 0;
     const n = points.length;
-    if (n < 6) return 0;
+    if (n < 3) return 0;
     for (let i = 0; i < n; i += 2) {
       const j = (i + 2) % n;
       area += points[i] * points[j + 1] - points[j] * points[i + 1];
@@ -673,7 +669,17 @@ console.log('history',history)
     setTotalPanelsAdded(0);
     setPanelLength(0);
     setPanelWidth(0);
+    setSelectedPanel(null)
   };
+
+  const handleExportImage = async()=>{
+    const stage = stageRef.current;
+    if(stage){
+      const dataURL = stage.toDataURL();
+const data = await exportImage(dataURL)
+console.log(data)
+    }
+  }
 
   const value: ImageContextProps = {
     imageElement,
@@ -730,6 +736,7 @@ console.log('history',history)
     handleDrawPolygon,
     drawingMode,
     setDrawingMode,
+    handleExportImage,
   };
 
   return (

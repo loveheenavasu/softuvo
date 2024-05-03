@@ -1,5 +1,4 @@
 "use client";
-
 import React from "react";
 import styles from "./Sidebar.module.css";
 import { Button } from "@mui/material";
@@ -11,7 +10,7 @@ import Box from "@mui/material/Box";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
-import Select, { SelectChangeEvent } from "@mui/material/Select";
+import Select from "@mui/material/Select";
 import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
 import AddIcon from "@mui/icons-material/Add";
@@ -21,8 +20,8 @@ import { useImageContext } from "@/app/context/sidebarContext/ImageProvider";
 import { Panel } from "@/app/actions/getAllPanels";
 import PolylineIcon from "@mui/icons-material/Polyline";
 import { Cancel } from "@mui/icons-material";
-import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
+import SaveAltIcon from "@mui/icons-material/SaveAlt";
 
 interface Props {
   getAllPanel: {
@@ -97,10 +96,8 @@ const SideBar: React.FC<Props> = ({ getAllPanel }) => {
     setSelectedPanel,
     drawingMode,
     handleDrawPolygon,
-    polygons,
     history,
-    historyIndex,
-    setPolygons,
+    handleExportImage
   } = useImageContext();
 
   let panelWattage = selectedPanel ? selectedPanel?.powerWattage / 1000 : 0;
@@ -111,21 +108,14 @@ const SideBar: React.FC<Props> = ({ getAllPanel }) => {
 
   const totalannualproduction = annualproduction * totalPanelsAdded;
   const systemSize = panelWattage * totalPanelsAdded;
-console.log(selectedPanel, 'sdsfgh')
 
-
-console.log(history,historyIndex, 'historyhistoryhistoryhistory')
   const handlePanelSelect = (elementName: string) => {
+    const hasPrevSelectedPanel = history?.[history.length - 1]?.didAddedPanels;
 
-    const hasPrevSelectedPanel = history?.[history.length -1]?.didAddedPanels
-
-    console.log(hasPrevSelectedPanel, 'hasPrevSelectedPanelhasPrevSelectedPanelhasPrevSelectedPanel')
-
-    if(hasPrevSelectedPanel){
-      return 
+    if (hasPrevSelectedPanel) {
+      return;
     }
 
-    
     const selectedItem = getAllPanel?.panels?.find(
       (ele: Panel) => ele.modelName === elementName
     );
@@ -155,7 +145,7 @@ console.log(history,historyIndex, 'historyhistoryhistoryhistory')
   };
 
   return (
-    <div className={styles.sidebar}>
+    <div className={`${styles.sidebar} sm:w-1/4 md:w-1/5 lg:w-1/5 xl:w-1/5`}>
       <div className="flex justify-between bg-black p-2">
         <div onClick={handleDrawPolygon}>
           {drawingMode ? (
@@ -197,8 +187,13 @@ console.log(history,historyIndex, 'historyhistoryhistoryhistory')
             <DeleteIcon fontSize="medium" />
           </Tooltip>
         </div>
+        <div>
+          <Tooltip title="Export Image" onClick={handleExportImage}>
+            <SaveAltIcon fontSize="medium"/>
+          </Tooltip>
+        </div>
       </div>
-      <div className="w-[300px] bg-black py-4 mt-3">
+      <div className=" bg-black py-4 mt-3">
         <div className="flex justify-between items-center px-2">
           <div>System size</div>
           <div>{`${systemSize.toFixed(0)} KW`} </div>
@@ -275,8 +270,6 @@ console.log(history,historyIndex, 'historyhistoryhistoryhistory')
               id="demo-simple-select"
               value={selectedPanel ? selectedPanel.modelName : ""}
               label="Add Panels"
-
-              // onChange={handlePanelSelect}
             >
               {getAllPanel?.panels?.map(
                 (panel, index: React.Key | null | undefined) => {

@@ -158,8 +158,6 @@ export default function AddressForm() {
         } else {
           console.error("Latitude or longitude is undefined");
         }
-      } else {
-        console.log('no location is selected')
       }
     } catch (error) {
       console.error("Error:", error);
@@ -167,14 +165,21 @@ export default function AddressForm() {
       setIsSubmitting(false);
     }
   };
+  const debouncedSubmit = React.useMemo(
+    () => debounce(handleSubmit(onSubmit), 100),
+    [handleSubmit, onSubmit]
+  );
 
   return (
-    < >
-      <form onSubmit={handleSubmit(onSubmit)} className="absolute top-9 right-12  z-20">
+    <>
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className="absolute top-9 right-8  z-20 max-[640px]:w-44 sm:w-1/4 md:w-1/5 lg:w-1/5 xl:w-1/5"
+      >
         <Autocomplete
+        className="w-full"
           key={value?.description}
           id="google-map-demo"
-          sx={{ width: 300 }}
           getOptionLabel={(option) =>
             typeof option === "string" ? option : option.description
           }
@@ -194,9 +199,7 @@ export default function AddressForm() {
           }}
           onInputChange={(event, newInputValue) => {
             setInputValue(newInputValue);
-            if (newInputValue) {
-              handleSubmit(onSubmit)();
-            }
+            debouncedSubmit();
           }}
           renderInput={(params) => (
             <TextField
@@ -216,6 +219,7 @@ export default function AddressForm() {
                 ".MuiSvgIcon-root ": {
                   fill: "white !important",
                 },
+                // width : '100%'
               }}
               InputLabelProps={{
                 sx: {
@@ -244,7 +248,7 @@ export default function AddressForm() {
               ])
             );
             return (
-              <li {...props}>
+              <li   {...props}>
                 <Grid container alignItems="center">
                   <Grid item sx={{ display: "flex", width: 44 }}>
                     <LocationOnIcon sx={{ color: "text.secondary" }} />
@@ -272,9 +276,7 @@ export default function AddressForm() {
           }}
         />
       </form>
-      <div className="m-auto">
-        <CustomImage serverResponse={serverResponse} loader={isSubmitting} />
-      </div>
+      <CustomImage serverResponse={serverResponse} loader={isSubmitting} />
     </>
   );
 }

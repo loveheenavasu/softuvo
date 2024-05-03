@@ -6,15 +6,9 @@ export default async function Home() {
   const getAllPanel: PanelData | undefined = await getAllPanels();
 
   return (
-    <main className="relative">
-      <div className="">
-        {" "}
-        <AddressForm />
-      </div>
-
-      <div className="absolute top-9 right-2">
-        {getAllPanel ? <SideBar getAllPanel={getAllPanel} /> : null}
-      </div>
+    <main className="relative h-screen">
+      <AddressForm />
+      {getAllPanel ? <SideBar getAllPanel={getAllPanel} /> : null}
     </main>
   );
 }
