@@ -18,7 +18,7 @@ import { useImageContext } from "@/app/context/sidebarContext/ImageProvider";
 
 const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 
-function loadScript(src: string, position: HTMLElement | null, id: string) {
+async function loadScript(src: string, position: HTMLElement | null, id: string) {
   if (!position) {
     return;
   }
@@ -69,7 +69,7 @@ export default function AddressForm() {
   if (typeof window !== "undefined" && !loaded.current) {
     if (!document.querySelector("#google-maps")) {
       loadScript(
-        `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`,
+        `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&loading=async&libraries=places`,
         document.querySelector("head"),
         "google-maps"
       );
@@ -77,6 +77,7 @@ export default function AddressForm() {
 
     loaded.current = true;
   }
+  
 
   const fetch = React.useMemo(
     () =>

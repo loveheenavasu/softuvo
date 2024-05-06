@@ -38,7 +38,7 @@ interface ImageContextProps {
       }[]
     >
   >;
-  
+
   selectedRectIndex: number | null;
   setSelectedRectIndex: React.Dispatch<React.SetStateAction<number | null>>;
   setTotalPanelsAdded: React.Dispatch<React.SetStateAction<number>>;
@@ -85,7 +85,7 @@ interface ImageContextProps {
   drawingMode: boolean;
   setDrawingMode: React.Dispatch<React.SetStateAction<boolean>>;
   handleDrawPolygon: () => void;
-  handleExportImage: ()=> void;
+  handleExportImage: () => void;
 }
 
 interface TransformAttributes {
@@ -165,6 +165,7 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
         rotationAngles: rotationAngles,
         transformerAttrs: transformerAttrs,
         totalPanelsAdded: newTotalPanels,
+        selectedPanel: selectedPanel,
       },
     ];
     setTotalPanelsAdded((prevValue) => prevValue + count);
@@ -185,6 +186,8 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
           sideLengths: sideLengths,
           rotationAngles: rotationAngles,
           transformerAttrs: transformerAttrs,
+          totalPanelsAdded: totalPanelsAdded,
+          selectedPanel: selectedPanel,
         },
       ]);
       setHistoryIndex(historyIndex + 1);
@@ -239,7 +242,7 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
             rotationAngles: rotationAngles,
             totalPanelsAdded: totalPanelsAdded,
             selectedPanel: selectedPanel,
-            transformerAttrs: transformerAttrs, // Include transformer attributes in history
+            transformerAttrs: transformerAttrs,
           },
         ];
         setHistory(newHistory);
@@ -409,9 +412,7 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
         didAddedPanels: true,
       },
     ];
-
     TotalPanelsAdded(numPanelsAdded);
-
     setSelectedPanel(selectedPanel);
     setPoints(isPolygonPoints ? [] : points);
     setPolygons(newPolygons);
@@ -669,17 +670,17 @@ export const ImageProvider: React.FC<{ children: ReactNode | ReactNode[] }> = ({
     setTotalPanelsAdded(0);
     setPanelLength(0);
     setPanelWidth(0);
-    setSelectedPanel(null)
+    setSelectedPanel(null);
   };
 
-  const handleExportImage = async()=>{
+  const handleExportImage = async () => {
     const stage = stageRef.current;
-    if(stage){
+    if (stage) {
       const dataURL = stage.toDataURL();
-const data = await exportImage(dataURL)
-console.log(data)
+      const data = await exportImage(dataURL);
+      console.log(data);
     }
-  }
+  };
 
   const value: ImageContextProps = {
     imageElement,

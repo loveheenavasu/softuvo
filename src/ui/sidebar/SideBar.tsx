@@ -91,13 +91,13 @@ const SideBar: React.FC<Props> = ({ getAllPanel }) => {
     rectanglePlacementMode,
     totalPanelsAdded,
     handleRefresh,
-    handleSelectPanel,
     selectedPanel,
     setSelectedPanel,
     drawingMode,
     handleDrawPolygon,
     history,
-    handleExportImage
+    historyIndex,
+    handleExportImage,
   } = useImageContext();
 
   let panelWattage = selectedPanel ? selectedPanel?.powerWattage / 1000 : 0;
@@ -110,12 +110,10 @@ const SideBar: React.FC<Props> = ({ getAllPanel }) => {
   const systemSize = panelWattage * totalPanelsAdded;
 
   const handlePanelSelect = (elementName: string) => {
-    const hasPrevSelectedPanel = history?.[history.length - 1]?.didAddedPanels;
-
+    const hasPrevSelectedPanel = history?.[historyIndex]?.didAddedPanels;
     if (hasPrevSelectedPanel) {
       return;
     }
-
     const selectedItem = getAllPanel?.panels?.find(
       (ele: Panel) => ele.modelName === elementName
     );
@@ -137,7 +135,9 @@ const SideBar: React.FC<Props> = ({ getAllPanel }) => {
   };
 
   const isMenuDisabled = (name: string) => {
-    const firstPanelWithType = history.find((ele) => !!ele?.selectedPanel);
+    const firstPanelWithType = history
+      .slice(0, historyIndex + 1)
+      .find((ele) => !!ele?.selectedPanel);
     if (firstPanelWithType) {
       return !firstPanelWithType.selectedPanel.modelName.includes(name);
     }
@@ -189,7 +189,7 @@ const SideBar: React.FC<Props> = ({ getAllPanel }) => {
         </div>
         <div>
           <Tooltip title="Export Image" onClick={handleExportImage}>
-            <SaveAltIcon fontSize="medium"/>
+            <SaveAltIcon fontSize="medium" />
           </Tooltip>
         </div>
       </div>
